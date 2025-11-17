@@ -70,10 +70,8 @@
     "react-helmet-async": "^2.0.4",
     "react-window": "^1.8.10",
     "@types/react-window": "^1.8.8",
-    "facebook-nodejs-business-sdk": "^18.0.2",
-    "google-ads-api": "^13.0.0",
-    "tiktok-business-api": "^1.0.0",
-    "snapchat-marketing-api": "^1.0.0"
+    "core-js": "^3.35.0",
+    "regenerator-runtime": "^0.14.1"
   },
   "devDependencies": {
     "typescript": "^5.3.3",
