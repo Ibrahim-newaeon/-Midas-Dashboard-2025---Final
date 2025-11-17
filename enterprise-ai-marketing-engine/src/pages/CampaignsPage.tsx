@@ -1,5 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAppDispatch } from '@/store/hooks';
+import { logout } from '@/store/slices/authSlice';
 import {
   Box,
   Container,
@@ -17,9 +19,16 @@ import {
   Toolbar,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import LogoutIcon from '@mui/icons-material/Logout';
 
 const CampaignsPage: React.FC = () => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+
+  const handleLogout = async () => {
+    await dispatch(logout());
+    navigate('/login');
+  };
   const campaigns = [
     { id: 1, name: 'Summer Sale 2024', platform: 'Meta', status: 'Active', spend: '$1,234', conversions: 45 },
     { id: 2, name: 'Product Launch', platform: 'Google', status: 'Active', spend: '$2,456', conversions: 89 },
@@ -40,6 +49,9 @@ const CampaignsPage: React.FC = () => {
           </Typography>
           <Button color="inherit" onClick={() => navigate('/dashboard')}>Dashboard</Button>
           <Button color="inherit" onClick={() => navigate('/analytics')}>Analytics</Button>
+          <Button color="inherit" onClick={handleLogout} startIcon={<LogoutIcon />}>
+            Logout
+          </Button>
         </Toolbar>
       </AppBar>
 

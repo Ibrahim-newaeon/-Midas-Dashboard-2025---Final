@@ -1,15 +1,32 @@
-import React from 'react';
-import { Box, Container, Typography, Paper, TextField, Button, Link } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, Container, Typography, Paper, TextField, Button, Link, Alert, CircularProgress } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { login } from '@/store/slices/authSlice';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const { isAuthenticated, isLoading, error } = useAppSelector((state) => state.auth);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // For now, just navigate to dashboard
-    // TODO: Implement actual authentication
-    navigate('/dashboard');
+    try {
+      await dispatch(login({ email, password })).unwrap();
+      // Navigation happens automatically via useEffect when isAuthenticated becomes true
+    } catch (err) {
+      // Error is handled by Redux state
+      console.error('Login failed:', err);
+    }
   };
 
   return (
@@ -31,6 +48,12 @@ const LoginPage: React.FC = () => {
             Sign in to access your marketing campaigns
           </Typography>
 
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+
           <form onSubmit={handleSubmit}>
             <TextField
               fullWidth
@@ -41,6 +64,9 @@ const LoginPage: React.FC = () => {
               required
               autoComplete="email"
               autoFocus
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={isLoading}
             />
             <TextField
               fullWidth
@@ -50,6 +76,9 @@ const LoginPage: React.FC = () => {
               margin="normal"
               required
               autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={isLoading}
             />
 
             <Button
@@ -58,8 +87,9 @@ const LoginPage: React.FC = () => {
               variant="contained"
               size="large"
               sx={{ mt: 3, mb: 2 }}
+              disabled={isLoading}
             >
-              Sign In
+              {isLoading ? <CircularProgress size={24} /> : 'Sign In'}
             </Button>
 
             <Box sx={{ textAlign: 'center' }}>

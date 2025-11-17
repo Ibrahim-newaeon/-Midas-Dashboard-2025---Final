@@ -1,5 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { logout } from '@/store/slices/authSlice';
 import {
   Box,
   Container,
@@ -17,9 +19,17 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import CampaignIcon from '@mui/icons-material/Campaign';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import PeopleIcon from '@mui/icons-material/People';
+import LogoutIcon from '@mui/icons-material/Logout';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const { user } = useAppSelector((state) => state.auth);
+
+  const handleLogout = async () => {
+    await dispatch(logout());
+    navigate('/login');
+  };
   const stats = [
     { label: 'Total Campaigns', value: '24', icon: <CampaignIcon />, color: '#1976d2' },
     { label: 'Total Spend', value: '$45,234', icon: <AttachMoneyIcon />, color: '#2e7d32' },
@@ -34,9 +44,16 @@ const DashboardPage: React.FC = () => {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Enterprise AI Marketing Engine
           </Typography>
+          {user && (
+            <Typography variant="body2" sx={{ mr: 2 }}>
+              Welcome, {user.firstName || user.email}
+            </Typography>
+          )}
           <Button color="inherit" onClick={() => navigate('/campaigns')}>Campaigns</Button>
           <Button color="inherit" onClick={() => navigate('/analytics')}>Analytics</Button>
-          <Button color="inherit" onClick={() => navigate('/login')}>Login</Button>
+          <Button color="inherit" onClick={handleLogout} startIcon={<LogoutIcon />}>
+            Logout
+          </Button>
         </Toolbar>
       </AppBar>
 
@@ -112,8 +129,8 @@ const DashboardPage: React.FC = () => {
                 <Button fullWidth variant="outlined" sx={{ mb: 1 }} onClick={() => navigate('/analytics')}>
                   View Analytics
                 </Button>
-                <Button fullWidth variant="outlined" onClick={() => navigate('/login')}>
-                  Import Data
+                <Button fullWidth variant="outlined" onClick={() => navigate('/bulk-upload')}>
+                  Bulk Upload
                 </Button>
               </Box>
             </Paper>
