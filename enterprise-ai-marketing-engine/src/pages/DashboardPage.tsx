@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -18,6 +19,7 @@ import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import PeopleIcon from '@mui/icons-material/People';
 
 const DashboardPage: React.FC = () => {
+  const navigate = useNavigate();
   const stats = [
     { label: 'Total Campaigns', value: '24', icon: <CampaignIcon />, color: '#1976d2' },
     { label: 'Total Spend', value: '$45,234', icon: <AttachMoneyIcon />, color: '#2e7d32' },
@@ -32,9 +34,9 @@ const DashboardPage: React.FC = () => {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Enterprise AI Marketing Engine
           </Typography>
-          <Button color="inherit">Campaigns</Button>
-          <Button color="inherit">Analytics</Button>
-          <Button color="inherit">Settings</Button>
+          <Button color="inherit" onClick={() => navigate('/campaigns')}>Campaigns</Button>
+          <Button color="inherit" onClick={() => navigate('/analytics')}>Analytics</Button>
+          <Button color="inherit" onClick={() => navigate('/login')}>Login</Button>
         </Toolbar>
       </AppBar>
 
@@ -104,13 +106,13 @@ const DashboardPage: React.FC = () => {
                 Quick Actions
               </Typography>
               <Box sx={{ mt: 2 }}>
-                <Button fullWidth variant="outlined" sx={{ mb: 1 }}>
+                <Button fullWidth variant="outlined" sx={{ mb: 1 }} onClick={() => navigate('/campaigns')}>
                   Create Campaign
                 </Button>
-                <Button fullWidth variant="outlined" sx={{ mb: 1 }}>
+                <Button fullWidth variant="outlined" sx={{ mb: 1 }} onClick={() => navigate('/analytics')}>
                   View Analytics
                 </Button>
-                <Button fullWidth variant="outlined">
+                <Button fullWidth variant="outlined" onClick={() => navigate('/login')}>
                   Import Data
                 </Button>
               </Box>

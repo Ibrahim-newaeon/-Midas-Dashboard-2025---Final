@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -18,6 +19,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 
 const CampaignsPage: React.FC = () => {
+  const navigate = useNavigate();
   const campaigns = [
     { id: 1, name: 'Summer Sale 2024', platform: 'Meta', status: 'Active', spend: '$1,234', conversions: 45 },
     { id: 2, name: 'Product Launch', platform: 'Google', status: 'Active', spend: '$2,456', conversions: 89 },
@@ -36,8 +38,8 @@ const CampaignsPage: React.FC = () => {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Campaigns
           </Typography>
-          <Button color="inherit" href="/dashboard">Dashboard</Button>
-          <Button color="inherit" href="/analytics">Analytics</Button>
+          <Button color="inherit" onClick={() => navigate('/dashboard')}>Dashboard</Button>
+          <Button color="inherit" onClick={() => navigate('/analytics')}>Analytics</Button>
         </Toolbar>
       </AppBar>
 

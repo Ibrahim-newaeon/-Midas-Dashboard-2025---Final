@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -11,6 +12,8 @@ import {
 } from '@mui/material';
 
 const AnalyticsPage: React.FC = () => {
+  const navigate = useNavigate();
+
   return (
     <Box sx={{ flexGrow: 1 }}>
       <AppBar position="static">
@@ -18,8 +21,8 @@ const AnalyticsPage: React.FC = () => {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Analytics
           </Typography>
-          <Button color="inherit" href="/dashboard">Dashboard</Button>
-          <Button color="inherit" href="/campaigns">Campaigns</Button>
+          <Button color="inherit" onClick={() => navigate('/dashboard')}>Dashboard</Button>
+          <Button color="inherit" onClick={() => navigate('/campaigns')}>Campaigns</Button>
         </Toolbar>
       </AppBar>
 
