@@ -1,0 +1,90 @@
+import React from 'react';
+import {
+  Box,
+  Container,
+  Typography,
+  Button,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
+  AppBar,
+  Toolbar,
+} from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+
+const CampaignsPage: React.FC = () => {
+  const campaigns = [
+    { id: 1, name: 'Summer Sale 2024', platform: 'Meta', status: 'Active', spend: '$1,234', conversions: 45 },
+    { id: 2, name: 'Product Launch', platform: 'Google', status: 'Active', spend: '$2,456', conversions: 89 },
+    { id: 3, name: 'Brand Awareness', platform: 'TikTok', status: 'Paused', spend: '$567', conversions: 12 },
+    { id: 4, name: 'Retargeting Q4', platform: 'Snapchat', status: 'Active', spend: '$890', conversions: 34 },
+  ];
+
+  const getStatusColor = (status: string) => {
+    return status === 'Active' ? 'success' : 'default';
+  };
+
+  return (
+    <Box sx={{ flexGrow: 1 }}>
+      <AppBar position="static">
+        <Toolbar>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            Campaigns
+          </Typography>
+          <Button color="inherit" href="/dashboard">Dashboard</Button>
+          <Button color="inherit" href="/analytics">Analytics</Button>
+        </Toolbar>
+      </AppBar>
+
+      <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h4">All Campaigns</Typography>
+          <Button variant="contained" startIcon={<AddIcon />}>
+            Create Campaign
+          </Button>
+        </Box>
+
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell><strong>Campaign Name</strong></TableCell>
+                <TableCell><strong>Platform</strong></TableCell>
+                <TableCell><strong>Status</strong></TableCell>
+                <TableCell align="right"><strong>Spend</strong></TableCell>
+                <TableCell align="right"><strong>Conversions</strong></TableCell>
+                <TableCell align="right"><strong>Actions</strong></TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {campaigns.map((campaign) => (
+                <TableRow key={campaign.id} hover>
+                  <TableCell>{campaign.name}</TableCell>
+                  <TableCell>
+                    <Chip label={campaign.platform} size="small" />
+                  </TableCell>
+                  <TableCell>
+                    <Chip label={campaign.status} color={getStatusColor(campaign.status)} size="small" />
+                  </TableCell>
+                  <TableCell align="right">{campaign.spend}</TableCell>
+                  <TableCell align="right">{campaign.conversions}</TableCell>
+                  <TableCell align="right">
+                    <Button size="small">View</Button>
+                    <Button size="small">Edit</Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Container>
+    </Box>
+  );
+};
+
+export default CampaignsPage;
