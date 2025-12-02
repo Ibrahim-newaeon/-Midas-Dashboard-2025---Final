@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, List, Tuple
 import plotly.express as px
 import plotly.graph_objects as go
+import admin_page as admin
 
 # =============================
 # PAGE CONFIG & STYLE
@@ -35,6 +36,14 @@ st.markdown(
     div[data-baseweb="tab"] button[aria-selected="true"]:nth-child(1) {background-color: #00A86B !important; color: white !important;}
     div[data-baseweb="tab"] button[aria-selected="true"]:nth-child(2) {background-color: #CE1126 !important; color: white !important;}
     div[data-baseweb="tab"] button[aria-selected="true"]:nth-child(3) {background-color: #0066CC !important; color: white !important;}
+    .login-container {
+        max-width: 400px;
+        margin: auto;
+        padding: 2rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -139,14 +148,71 @@ def render_dashboard(df: pd.DataFrame, selected_platform: str):
         st.dataframe(top, width='stretch', hide_index=True)
 
 # =============================
+# AUTHENTICATION
+# =============================
+
+def login_page():
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown("<div class='login-container'>", unsafe_allow_html=True)
+        st.title("🔐 Login")
+        st.markdown("Please sign in to continue")
+
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+
+        if st.button("Login", use_container_width=True):
+            user = next((u for u in st.session_state.users if u['username'] == username and u.get('password') == password), None)
+            if user:
+                if user['status'] != 'Active':
+                    st.error("Account is inactive.")
+                else:
+                    st.session_state.logged_in = True
+                    st.session_state.user_role = user['role']
+                    st.session_state.username = user['username']
+                    # Update last login
+                    user['last_login'] = datetime.now().strftime('%Y-%m-%d %H:%M')
+                    st.success("Logged in successfully!")
+                    st.rerun()
+            else:
+                st.error("Invalid username or password")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+# =============================
 # MAIN
 # =============================
 
 def main():
-    with st.spinner("Loading data..."):
-        df = load_campaign_data()
-    selected_platform, selected_campaigns, date_range = render_sidebar(df)
-    render_dashboard(df, selected_platform)
+    # Initialize Admin State (users)
+    admin.initialize_admin_state()
+
+    if 'logged_in' not in st.session_state:
+        st.session_state.logged_in = False
+
+    if not st.session_state.logged_in:
+        login_page()
+        return
+
+    # If logged in
+    st.sidebar.title(f"👤 {st.session_state.username}")
+
+    # Navigation
+    if st.session_state.user_role == 'Administrator':
+        page = st.sidebar.radio("Navigate", ["Dashboard", "Admin Settings"])
+    else:
+        page = "Dashboard"
+
+    if st.sidebar.button("Logout", key="logout_btn"):
+        st.session_state.logged_in = False
+        st.rerun()
+
+    if page == "Dashboard":
+        with st.spinner("Loading data..."):
+            df = load_campaign_data()
+        selected_platform, selected_campaigns, date_range = render_sidebar(df)
+        render_dashboard(df, selected_platform)
+    elif page == "Admin Settings":
+        admin.render_admin_page()
 
 if __name__ == "__main__":
     main()
