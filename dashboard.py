@@ -14,6 +14,8 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, List, Tuple
 import plotly.express as px
 import plotly.graph_objects as go
+import admin_page as admin
+import app_utils
 
 # =============================
 # PAGE CONFIG & STYLE
@@ -26,22 +28,10 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-st.markdown(
-    """
-    <style>
-    [data-testid="stSidebar"] {background: linear-gradient(180deg, #0B0F1A 0%, #1C2331 100%); color: white;}
-    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3, [data-testid="stSidebar"] span {color: #f0f0f0 !important;}
-    [data-testid="stMetricValue"] {color: #00A86B !important; font-weight: 700;}
-    div[data-baseweb="tab"] button[aria-selected="true"]:nth-child(1) {background-color: #00A86B !important; color: white !important;}
-    div[data-baseweb="tab"] button[aria-selected="true"]:nth-child(2) {background-color: #CE1126 !important; color: white !important;}
-    div[data-baseweb="tab"] button[aria-selected="true"]:nth-child(3) {background-color: #0066CC !important; color: white !important;}
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+app_utils.apply_custom_css()
 
-PLOTLY_TEMPLATE = "plotly_white"
-PLOTLY_CONFIG = {"displaylogo": False, "modeBarButtonsToRemove": ["lasso2d", "select2d"]}
+PLOTLY_TEMPLATE = app_utils.PLOTLY_TEMPLATE
+PLOTLY_CONFIG = app_utils.PLOTLY_CONFIG
 
 # =============================
 # DATA LOADING
@@ -119,19 +109,32 @@ def render_dashboard(df: pd.DataFrame, selected_platform: str):
         st.subheader("Overview Metrics")
         c1, c2 = st.columns(2)
         with c1:
-            fig1 = px.bar(df, x='platform', y='revenue', color='platform', title='Revenue by Platform', template=PLOTLY_TEMPLATE)
+            st.markdown('<div class="grafana-panel"><div class="panel-header">Revenue by Platform</div>', unsafe_allow_html=True)
+            fig1 = px.bar(df, x='platform', y='revenue', color='platform', template=PLOTLY_TEMPLATE)
+            fig1.update_layout(margin=dict(l=0, r=0, t=0, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
             st.plotly_chart(fig1, width='stretch', config=PLOTLY_CONFIG)
+            st.markdown('</div>', unsafe_allow_html=True)
         with c2:
-            fig2 = px.line(df.groupby('date')['roas'].mean().reset_index(), x='date', y='roas', title='ROAS Over Time', template=PLOTLY_TEMPLATE)
+            st.markdown('<div class="grafana-panel"><div class="panel-header">ROAS Over Time</div>', unsafe_allow_html=True)
+            fig2 = px.line(df.groupby('date')['roas'].mean().reset_index(), x='date', y='roas', template=PLOTLY_TEMPLATE)
+            fig2.update_layout(margin=dict(l=0, r=0, t=0, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
             st.plotly_chart(fig2, width='stretch', config=PLOTLY_CONFIG)
+            st.markdown('</div>', unsafe_allow_html=True)
 
     with tabs[1]:
         st.subheader(f"Deep Dive: {selected_platform}")
         c1, c2 = st.columns(2)
-        fig3 = px.scatter(df, x='cpm', y='ctr', size='impressions', color='platform', title='CTR vs CPM', template=PLOTLY_TEMPLATE)
-        fig4 = px.line(df.groupby('date')['cpa'].mean().reset_index(), x='date', y='cpa', title='CPA Trend', template=PLOTLY_TEMPLATE)
+        st.markdown('<div class="grafana-panel"><div class="panel-header">CTR vs CPM</div>', unsafe_allow_html=True)
+        fig3 = px.scatter(df, x='cpm', y='ctr', size='impressions', color='platform', template=PLOTLY_TEMPLATE)
+        fig3.update_layout(margin=dict(l=0, r=0, t=0, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         c1.plotly_chart(fig3, width='stretch', config=PLOTLY_CONFIG)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="grafana-panel"><div class="panel-header">CPA Trend</div>', unsafe_allow_html=True)
+        fig4 = px.line(df.groupby('date')['cpa'].mean().reset_index(), x='date', y='cpa', template=PLOTLY_TEMPLATE)
+        fig4.update_layout(margin=dict(l=0, r=0, t=0, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         c2.plotly_chart(fig4, width='stretch', config=PLOTLY_CONFIG)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with tabs[2]:
         st.subheader("Top Performing Campaigns")
@@ -139,10 +142,59 @@ def render_dashboard(df: pd.DataFrame, selected_platform: str):
         st.dataframe(top, width='stretch', hide_index=True)
 
 # =============================
+# AUTHENTICATION
+# =============================
+
+def login_page():
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown("<div class='login-container'>", unsafe_allow_html=True)
+        st.title("🔐 Login")
+        st.markdown("Please sign in to continue")
+
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+
+        if st.button("Login", use_container_width=True):
+            user = next((u for u in st.session_state.users if u['username'] == username and u.get('password') == password), None)
+            if user:
+                if user['status'] != 'Active':
+                    st.error("Account is inactive.")
+                else:
+                    st.session_state.logged_in = True
+                    st.session_state.user_role = user['role']
+                    st.session_state.username = user['username']
+                    # Update last login
+                    user['last_login'] = datetime.now().strftime('%Y-%m-%d %H:%M')
+                    st.success("Logged in successfully!")
+                    st.rerun()
+            else:
+                st.error("Invalid username or password")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+# =============================
 # MAIN
 # =============================
 
 def main():
+    # Initialize Admin State (users)
+    admin.initialize_admin_state()
+
+    if 'logged_in' not in st.session_state:
+        st.session_state.logged_in = False
+
+    if not st.session_state.logged_in:
+        login_page()
+        return
+
+    # If logged in
+    st.sidebar.title(f"👤 {st.session_state.username}")
+
+    # Logout button
+    if st.sidebar.button("Logout", key="logout_btn"):
+        st.session_state.logged_in = False
+        st.rerun()
+
     with st.spinner("Loading data..."):
         df = load_campaign_data()
     selected_platform, selected_campaigns, date_range = render_sidebar(df)

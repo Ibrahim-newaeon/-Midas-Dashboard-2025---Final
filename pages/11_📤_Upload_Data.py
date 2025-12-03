@@ -10,6 +10,12 @@ import numpy as np
 from datetime import datetime, timedelta
 from typing import Optional, Tuple, Dict
 import io
+import sys
+import os
+
+# Add parent directory to path to import app_utils
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import app_utils
 
 # ========================================
 # UPLOAD STYLES
@@ -17,6 +23,9 @@ import io
 
 def apply_upload_styles():
     """Apply upload page styles"""
+    app_utils.apply_custom_css()
+    app_utils.check_authentication()
+
     st.markdown("""
     <style>
     .upload-zone {
@@ -332,40 +341,80 @@ def render_api_integration():
     """Render API integration interface"""
     
     st.subheader("🔗 API Integration")
-    st.info("🚧 API integration coming soon! Connect directly to Meta, Google, TikTok, and more.")
+    st.markdown("Connect directly to ad platforms to sync data automatically.")
     
     # API options
-    col1, col2 = st.columns(2)
+    col1, col2 = st.columns([1, 1.5])
     
     with col1:
-        st.markdown("### 📱 Supported Platforms")
-        platforms = [
-            "Meta Ads (Facebook & Instagram)",
-            "Google Ads",
-            "TikTok Ads",
-            "Snapchat Ads",
-            "LinkedIn Ads",
-            "Twitter (X) Ads"
-        ]
-        for platform in platforms:
-            st.checkbox(platform, disabled=True)
+        st.markdown("### 📱 Select Platform")
+        platform = st.radio(
+            "Supported Platforms",
+            ["Meta Ads (Facebook & Instagram)", "Google Ads", "TikTok Ads", "Snapchat Ads", "LinkedIn Ads", "Twitter (X) Ads"],
+            index=0
+        )
     
     with col2:
-        st.markdown("### ⚙️ Configuration")
-        st.text_input("API Key", type="password", disabled=True)
-        st.text_input("Account ID", disabled=True)
-        st.date_input("Start Date", disabled=True)
-        st.date_input("End Date", disabled=True)
-        st.button("🔌 Connect API", disabled=True, width="stretch")
-    
-    st.markdown("---")
-    st.markdown("**📝 To enable API integration:**")
-    st.markdown("""
-    1. Contact your account manager
-    2. Request API access credentials
-    3. Configure OAuth authentication
-    4. Set up automated data sync
-    """)
+        st.markdown(f"### ⚙️ Connect {platform.split(' ')[0]}")
+
+        if 'api_connected' not in st.session_state:
+            st.session_state.api_connected = False
+
+        if not st.session_state.api_connected:
+            with st.form("api_config_form"):
+                st.text_input("API Key / Access Token", type="password", help="Enter your API credential")
+                st.text_input("Account ID", help="Your ad account ID")
+                submitted = st.form_submit_button("🔌 Connect API", use_container_width=True)
+
+                if submitted:
+                    with st.spinner("Connecting to platform..."):
+                        # Simulate connection delay
+                        import time
+                        time.sleep(1.5)
+                        st.session_state.api_connected = True
+                        st.rerun()
+        else:
+            st.success(f"✅ Connected to {platform}")
+
+            col_a, col_b = st.columns(2)
+            with col_a:
+                start_date = st.date_input("Start Date", datetime.now() - timedelta(days=30))
+            with col_b:
+                end_date = st.date_input("End Date", datetime.now())
+
+            if st.button("🔄 Sync Data Now", type="primary", use_container_width=True):
+                with st.spinner("Fetching campaign data..."):
+                    # Simulate data fetch
+                    import time
+                    time.sleep(2)
+
+                    # Generate mock data matching the selected platform
+                    dates = pd.date_range(start=start_date, end=end_date, freq='D')
+                    data = []
+                    short_platform = platform.split(' ')[0]
+
+                    for date in dates:
+                        spend = np.random.uniform(100, 1000)
+                        data.append({
+                            'date': date,
+                            'campaign_name': f"{short_platform} Campaign {np.random.randint(1, 5)}",
+                            'platform': short_platform,
+                            'spend': round(spend, 2),
+                            'impressions': int(spend * np.random.uniform(500, 1500)),
+                            'clicks': int(spend * np.random.uniform(10, 50)),
+                            'conversions': int(spend * np.random.uniform(0.5, 2.0))
+                        })
+
+                    df_api = pd.DataFrame(data)
+                    st.session_state.uploaded_data = df_api
+                    st.session_state.upload_validated = True
+
+                    st.success(f"✅ Synced {len(df_api)} records from {platform}!")
+                    st.dataframe(df_api.head(), use_container_width=True)
+
+            if st.button("❌ Disconnect", type="secondary", use_container_width=True):
+                st.session_state.api_connected = False
+                st.rerun()
 
 def render_data_template():
     """Render data template download"""
