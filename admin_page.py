@@ -21,6 +21,7 @@ def initialize_admin_state():
                 'id': 1,
                 'username': 'admin',
                 'email': 'admin@midas.com',
+                'password': 'password123',
                 'role': 'Administrator',
                 'status': 'Active',
                 'created_date': '2025-01-01',
@@ -30,6 +31,7 @@ def initialize_admin_state():
                 'id': 2,
                 'username': 'analyst1',
                 'email': 'analyst@midas.com',
+                'password': 'password123',
                 'role': 'Analyst',
                 'status': 'Active',
                 'created_date': '2025-01-15',
@@ -39,6 +41,7 @@ def initialize_admin_state():
                 'id': 3,
                 'username': 'viewer1',
                 'email': 'viewer@midas.com',
+                'password': 'password123',
                 'role': 'Viewer',
                 'status': 'Active',
                 'created_date': '2025-02-01',
@@ -203,6 +206,7 @@ def render_add_user_form():
         with col1:
             username = st.text_input("Username *", placeholder="john_doe")
             email = st.text_input("Email *", placeholder="john@midas.com")
+            password = st.text_input("Password *", type="password", placeholder="Set password")
         
         with col2:
             role = st.selectbox("Role *", ["Viewer", "Analyst", "Administrator"])
@@ -217,11 +221,12 @@ def render_add_user_form():
             cancelled = st.form_submit_button("❌ Cancel", use_container_width=True)
         
         if submitted:
-            if username and email:
+            if username and email and password:
                 new_user = {
                     'id': st.session_state.next_user_id,
                     'username': username,
                     'email': email,
+                    'password': password,
                     'role': role,
                     'status': status,
                     'created_date': datetime.now().strftime('%Y-%m-%d'),

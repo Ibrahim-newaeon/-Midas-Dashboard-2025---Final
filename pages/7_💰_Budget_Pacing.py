@@ -11,6 +11,12 @@ import plotly.graph_objects as go
 import plotly.express as px
 from datetime import datetime, timedelta
 from typing import Tuple, Optional, Dict, Any
+import sys
+import os
+
+# Add parent directory to path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import app_utils
 
 # ========================================
 # BUDGET PACING STYLES
@@ -18,6 +24,9 @@ from typing import Tuple, Optional, Dict, Any
 
 def apply_budget_styles():
     """Apply budget pacing page styles"""
+    app_utils.apply_custom_css()
+    app_utils.check_authentication()
+
     st.markdown("""
     <style>
     .budget-card {

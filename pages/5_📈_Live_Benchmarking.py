@@ -10,6 +10,12 @@ import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
 from datetime import datetime, timedelta
+import sys
+import os
+
+# Add parent directory to path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import app_utils
 
 # ========================================
 # BENCHMARKING STYLES
@@ -17,6 +23,9 @@ from datetime import datetime, timedelta
 
 def apply_benchmarking_styles():
     """Apply benchmarking page styles"""
+    app_utils.apply_custom_css()
+    app_utils.check_authentication()
+
     st.markdown("""
     <style>
     .benchmark-card {
