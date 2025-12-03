@@ -75,12 +75,27 @@ st.markdown(
     [data-testid="stSidebar"] div[data-baseweb="select"] div {
         color: #f0f0f0 !important;
     }
+    
+    /* Grafana Style Panel */
+    .grafana-panel {
+        background-color: #181b1f;
+        border: 1px solid #2c3235;
+        border-radius: 4px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    .panel-header {
+        color: #d8d9da;
+        font-weight: 500;
+        font-size: 16px;
+        margin-bottom: 10px;
+    }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-PLOTLY_TEMPLATE = "plotly_white"
+PLOTLY_TEMPLATE = "plotly_dark"
 PLOTLY_CONFIG = {"displaylogo": False, "modeBarButtonsToRemove": ["lasso2d", "select2d"]}
 
 # =============================
@@ -189,19 +204,32 @@ def render_dashboard(df: pd.DataFrame, selected_platform: str):
         st.subheader("Overview Metrics")
         c1, c2 = st.columns(2)
         with c1:
-            fig1 = px.bar(df, x='platform', y='revenue', color='platform', title='Revenue by Platform', template=PLOTLY_TEMPLATE)
+            st.markdown('<div class="grafana-panel"><div class="panel-header">Revenue by Platform</div>', unsafe_allow_html=True)
+            fig1 = px.bar(df, x='platform', y='revenue', color='platform', template=PLOTLY_TEMPLATE)
+            fig1.update_layout(margin=dict(l=0, r=0, t=0, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
             st.plotly_chart(fig1, width='stretch', config=PLOTLY_CONFIG)
+            st.markdown('</div>', unsafe_allow_html=True)
         with c2:
-            fig2 = px.line(df.groupby('date')['roas'].mean().reset_index(), x='date', y='roas', title='ROAS Over Time', template=PLOTLY_TEMPLATE)
+            st.markdown('<div class="grafana-panel"><div class="panel-header">ROAS Over Time</div>', unsafe_allow_html=True)
+            fig2 = px.line(df.groupby('date')['roas'].mean().reset_index(), x='date', y='roas', template=PLOTLY_TEMPLATE)
+            fig2.update_layout(margin=dict(l=0, r=0, t=0, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
             st.plotly_chart(fig2, width='stretch', config=PLOTLY_CONFIG)
+            st.markdown('</div>', unsafe_allow_html=True)
 
     with tabs[1]:
         st.subheader(f"Deep Dive: {selected_platform}")
         c1, c2 = st.columns(2)
-        fig3 = px.scatter(df, x='cpm', y='ctr', size='impressions', color='platform', title='CTR vs CPM', template=PLOTLY_TEMPLATE)
-        fig4 = px.line(df.groupby('date')['cpa'].mean().reset_index(), x='date', y='cpa', title='CPA Trend', template=PLOTLY_TEMPLATE)
+        st.markdown('<div class="grafana-panel"><div class="panel-header">CTR vs CPM</div>', unsafe_allow_html=True)
+        fig3 = px.scatter(df, x='cpm', y='ctr', size='impressions', color='platform', template=PLOTLY_TEMPLATE)
+        fig3.update_layout(margin=dict(l=0, r=0, t=0, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         c1.plotly_chart(fig3, width='stretch', config=PLOTLY_CONFIG)
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="grafana-panel"><div class="panel-header">CPA Trend</div>', unsafe_allow_html=True)
+        fig4 = px.line(df.groupby('date')['cpa'].mean().reset_index(), x='date', y='cpa', template=PLOTLY_TEMPLATE)
+        fig4.update_layout(margin=dict(l=0, r=0, t=0, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         c2.plotly_chart(fig4, width='stretch', config=PLOTLY_CONFIG)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with tabs[2]:
         st.subheader("Top Performing Campaigns")
@@ -270,11 +298,13 @@ def render_ml_insights(df: pd.DataFrame):
         st.metric("Predicted Conversions", f"{int(prediction)}")
         
         # Visualization of the model
-        st.markdown("#### Model Insights (Spend vs Conversions)")
-        fig_pred = px.scatter(df, x='spend', y='conversions', color='platform', opacity=0.6, title="Historical Spend vs Conversions", template=PLOTLY_TEMPLATE)
+        st.markdown('<div class="grafana-panel"><div class="panel-header">Model Insights (Spend vs Conversions)</div>', unsafe_allow_html=True)
+        fig_pred = px.scatter(df, x='spend', y='conversions', color='platform', opacity=0.6, template=PLOTLY_TEMPLATE)
         # Add the prediction point
         fig_pred.add_traces(go.Scatter(x=[input_spend], y=[prediction], mode='markers', marker=dict(color='red', size=15, symbol='star'), name='Prediction'))
+        fig_pred.update_layout(margin=dict(l=0, r=0, t=0, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig_pred, width='stretch', config=PLOTLY_CONFIG)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # =============================
 # AUTHENTICATION
