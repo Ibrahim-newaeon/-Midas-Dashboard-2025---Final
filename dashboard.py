@@ -129,7 +129,7 @@ def render_dashboard(df: pd.DataFrame, selected_platform: str):
         fig3.update_layout(margin=dict(l=0, r=0, t=0, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         c1.plotly_chart(fig3, width='stretch', config=PLOTLY_CONFIG)
         st.markdown('</div>', unsafe_allow_html=True)
-
+        
         st.markdown('<div class="grafana-panel"><div class="panel-header">CPA Trend</div>', unsafe_allow_html=True)
         fig4 = px.line(df.groupby('date')['cpa'].mean().reset_index(), x='date', y='cpa', template=PLOTLY_TEMPLATE)
         fig4.update_layout(margin=dict(l=0, r=0, t=0, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
@@ -151,10 +151,10 @@ def login_page():
         st.markdown("<div class='login-container'>", unsafe_allow_html=True)
         st.title("🔐 Login")
         st.markdown("Please sign in to continue")
-
+        
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
-
+        
         if st.button("Login", use_container_width=True):
             user = next((u for u in st.session_state.users if u['username'] == username and u.get('password') == password), None)
             if user:
@@ -179,22 +179,22 @@ def login_page():
 def main():
     # Initialize Admin State (users)
     admin.initialize_admin_state()
-
+    
     if 'logged_in' not in st.session_state:
         st.session_state.logged_in = False
-
+        
     if not st.session_state.logged_in:
         login_page()
         return
 
     # If logged in
     st.sidebar.title(f"👤 {st.session_state.username}")
-
+    
     # Logout button
     if st.sidebar.button("Logout", key="logout_btn"):
         st.session_state.logged_in = False
         st.rerun()
-
+        
     with st.spinner("Loading data..."):
         df = load_campaign_data()
     selected_platform, selected_campaigns, date_range = render_sidebar(df)
