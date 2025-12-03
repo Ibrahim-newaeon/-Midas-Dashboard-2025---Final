@@ -3,9 +3,15 @@ Admin Page
 """
 import streamlit as st
 import sys
-sys.path.append('/mnt/user-data/outputs/FINAL_SYSTEM')
+import os
+
+# Add parent directory to path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import app_utils
 
 st.set_page_config(page_title="Admin", page_icon="👑", layout="wide")
+app_utils.apply_custom_css()
+app_utils.check_authentication()
 
 try:
     from admin_page import render_admin_page
