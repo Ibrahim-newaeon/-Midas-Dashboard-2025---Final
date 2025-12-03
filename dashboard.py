@@ -14,10 +14,8 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, List, Tuple
 import plotly.express as px
 import plotly.graph_objects as go
-from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import IsolationForest
 import admin_page as admin
+import app_utils
 
 # =============================
 # PAGE CONFIG & STYLE
@@ -30,73 +28,10 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-st.markdown(
-    """
-    <style>
-    /* Sidebar Background & Text */
-    [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0B0F1A 0%, #1C2331 100%);
-        color: white !important;
-    }
-    
-    /* Force white text for all headers and spans in sidebar */
-    [data-testid="stSidebar"] h1, 
-    [data-testid="stSidebar"] h2, 
-    [data-testid="stSidebar"] h3, 
-    [data-testid="stSidebar"] p, 
-    [data-testid="stSidebar"] span,
-    [data-testid="stSidebar"] label,
-    [data-testid="stSidebar"] div[data-baseweb="radio"] div {
-        color: #f0f0f0 !important;
-    }
+app_utils.apply_custom_css()
 
-    /* Metric Values */
-    [data-testid="stMetricValue"] {
-        color: #00A86B !important; 
-        font-weight: 700;
-    }
-
-    /* Tab Colors */
-    div[data-baseweb="tab"] button[aria-selected="true"]:nth-child(1) {background-color: #00A86B !important; color: white !important;}
-    div[data-baseweb="tab"] button[aria-selected="true"]:nth-child(2) {background-color: #CE1126 !important; color: white !important;}
-    div[data-baseweb="tab"] button[aria-selected="true"]:nth-child(3) {background-color: #0066CC !important; color: white !important;}
-
-    /* Login Container */
-    .login-container {
-        max-width: 400px;
-        margin: auto;
-        padding: 2rem;
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    /* Fix specific widget labeling in sidebar */
-    [data-testid="stSidebar"] div[data-baseweb="select"] div {
-        color: #f0f0f0 !important;
-    }
-    
-    /* Grafana Style Panel */
-    .grafana-panel {
-        background-color: #181b1f;
-        border: 1px solid #2c3235;
-        border-radius: 4px;
-        padding: 15px;
-        margin-bottom: 15px;
-    }
-    .panel-header {
-        color: #d8d9da;
-        font-weight: 500;
-        font-size: 16px;
-        margin-bottom: 10px;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-PLOTLY_TEMPLATE = "plotly_dark"
-PLOTLY_CONFIG = {"displaylogo": False, "modeBarButtonsToRemove": ["lasso2d", "select2d"]}
+PLOTLY_TEMPLATE = app_utils.PLOTLY_TEMPLATE
+PLOTLY_CONFIG = app_utils.PLOTLY_CONFIG
 
 # =============================
 # DATA LOADING
@@ -132,36 +67,6 @@ def load_campaign_data() -> pd.DataFrame:
     df['cpc'] = (df['spend'] / df['clicks']).replace([np.inf, -np.inf], 0).fillna(0)
     df['cpm'] = (df['spend'] / df['impressions'] * 1000).replace([np.inf, -np.inf], 0).fillna(0)
     return df
-
-# =============================
-# ML & ANALYTICS
-# =============================
-
-def train_conversion_model(df: pd.DataFrame):
-    """Train a simple linear regression model for conversion prediction."""
-    # Prepare features
-    feature_cols = ['spend', 'impressions', 'clicks']
-    X = df[feature_cols]
-    y = df['conversions']
-    
-    # Simple training (on full dataset for demo purposes)
-    model = LinearRegression()
-    model.fit(X, y)
-    
-    return model
-
-def detect_anomalies(df: pd.DataFrame) -> pd.DataFrame:
-    """Detect anomalies in ROAS using Isolation Forest."""
-    # Prepare data for anomaly detection
-    data = df[['roas', 'cpa', 'ctr']].fillna(0)
-    
-    # Train Isolation Forest
-    clf = IsolationForest(contamination=0.05, random_state=42)
-    df['is_anomaly'] = clf.fit_predict(data)
-    
-    # -1 indicates anomaly
-    anomalies = df[df['is_anomaly'] == -1].copy()
-    return anomalies
 
 # =============================
 # SIDEBAR
@@ -236,76 +141,6 @@ def render_dashboard(df: pd.DataFrame, selected_platform: str):
         top = df.groupby('campaign_name').agg({'spend':'sum','revenue':'sum'}).reset_index().sort_values('revenue',ascending=False).head(10)
         st.dataframe(top, width='stretch', hide_index=True)
 
-def render_ml_insights(df: pd.DataFrame):
-    st.title("🤖 Machine Learning & Insights")
-    
-    # 1. Anomaly Detection
-    st.markdown("### ⚠️ Performance Anomalies")
-    st.markdown("Automatic detection of unusual performance patterns (e.g., sudden ROAS drops or CPA spikes).")
-    
-    anomalies = detect_anomalies(df)
-    
-    if not anomalies.empty:
-        st.warning(f"Detected {len(anomalies)} anomalies in the current dataset.")
-        
-        # Show recent anomalies
-        recent_anomalies = anomalies.sort_values('date', ascending=False).head(5)
-        for idx, row in recent_anomalies.iterrows():
-            with st.expander(f"Anomaly detected on {row['date'].strftime('%Y-%m-%d')} ({row['platform']})"):
-                c1, c2, c3 = st.columns(3)
-                c1.metric("ROAS", f"{row['roas']:.2f}")
-                c2.metric("CPA", f"${row['cpa']:.2f}")
-                c3.metric("CTR", f"{row['ctr']:.2f}%")
-                st.caption(f"Campaign: {row['campaign_name']}")
-    else:
-        st.success("No significant anomalies detected.")
-
-    st.markdown("---")
-    
-    # 2. ML Predictions
-    st.markdown("### 🔮 Conversion Predictor")
-    st.markdown("Predict conversions based on planned spend and historical performance.")
-    
-    c1, c2 = st.columns([1, 2])
-    
-    with c1:
-        st.markdown("#### Scenario Planner")
-        input_spend = st.number_input("Planned Spend ($)", min_value=100.0, max_value=10000.0, value=1000.0, step=100.0)
-        
-        # Heuristics for inputs based on averages
-        avg_cpc = df['cpc'].mean()
-        avg_ctr = df['ctr'].mean()
-        
-        est_clicks = input_spend / avg_cpc if avg_cpc > 0 else 0
-        est_impressions = est_clicks / (avg_ctr / 100) if avg_ctr > 0 else 0
-        
-        st.info(f"Estimated Impressions: {int(est_impressions):,}")
-        st.info(f"Estimated Clicks: {int(est_clicks):,}")
-    
-    with c2:
-        model = train_conversion_model(df)
-        
-        # Predict
-        # Features: ['spend', 'impressions', 'clicks']
-        input_data = pd.DataFrame({
-            'spend': [input_spend],
-            'impressions': [est_impressions],
-            'clicks': [est_clicks]
-        })
-        
-        prediction = model.predict(input_data)[0]
-        
-        st.metric("Predicted Conversions", f"{int(prediction)}")
-        
-        # Visualization of the model
-        st.markdown('<div class="grafana-panel"><div class="panel-header">Model Insights (Spend vs Conversions)</div>', unsafe_allow_html=True)
-        fig_pred = px.scatter(df, x='spend', y='conversions', color='platform', opacity=0.6, template=PLOTLY_TEMPLATE)
-        # Add the prediction point
-        fig_pred.add_traces(go.Scatter(x=[input_spend], y=[prediction], mode='markers', marker=dict(color='red', size=15, symbol='star'), name='Prediction'))
-        fig_pred.update_layout(margin=dict(l=0, r=0, t=0, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        st.plotly_chart(fig_pred, width='stretch', config=PLOTLY_CONFIG)
-        st.markdown('</div>', unsafe_allow_html=True)
-
 # =============================
 # AUTHENTICATION
 # =============================
@@ -355,27 +190,15 @@ def main():
     # If logged in
     st.sidebar.title(f"👤 {st.session_state.username}")
     
-    # Navigation
-    if st.session_state.user_role == 'Administrator':
-        page = st.sidebar.radio("Navigate", ["Dashboard", "ML & Insights", "Admin Settings"])
-    else:
-        page = st.sidebar.radio("Navigate", ["Dashboard", "ML & Insights"])
-        
+    # Logout button
     if st.sidebar.button("Logout", key="logout_btn"):
         st.session_state.logged_in = False
         st.rerun()
         
-    if page == "Dashboard":
-        with st.spinner("Loading data..."):
-            df = load_campaign_data()
-        selected_platform, selected_campaigns, date_range = render_sidebar(df)
-        render_dashboard(df, selected_platform)
-    elif page == "ML & Insights":
-        with st.spinner("Loading data..."):
-            df = load_campaign_data()
-        render_ml_insights(df)
-    elif page == "Admin Settings":
-        admin.render_admin_page()
+    with st.spinner("Loading data..."):
+        df = load_campaign_data()
+    selected_platform, selected_campaigns, date_range = render_sidebar(df)
+    render_dashboard(df, selected_platform)
 
 if __name__ == "__main__":
     main()
