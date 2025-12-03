@@ -155,7 +155,7 @@ def render_sidebar(df: pd.DataFrame):
 def render_dashboard(df: pd.DataFrame, selected_platform: str):
     st.title("✨ Midas Campaign Analytics Dashboard")
 
-    tabs = st.tabs(["🟩 Overview", "🟥 Platform Deep Dive", "🟦 Top Campaigns", "🤖 ML & Insights"])
+    tabs = st.tabs(["🟩 Overview", "🟥 Platform Deep Dive", "🟦 Top Campaigns"])
 
     with tabs[0]:
         st.subheader("Overview Metrics")
@@ -180,73 +180,73 @@ def render_dashboard(df: pd.DataFrame, selected_platform: str):
         top = df.groupby('campaign_name').agg({'spend':'sum','revenue':'sum'}).reset_index().sort_values('revenue',ascending=False).head(10)
         st.dataframe(top, width='stretch', hide_index=True)
 
-    with tabs[3]:
-        st.subheader("🤖 Machine Learning & Insights")
+def render_ml_insights(df: pd.DataFrame):
+    st.title("🤖 Machine Learning & Insights")
+    
+    # 1. Anomaly Detection
+    st.markdown("### ⚠️ Performance Anomalies")
+    st.markdown("Automatic detection of unusual performance patterns (e.g., sudden ROAS drops or CPA spikes).")
+    
+    anomalies = detect_anomalies(df)
+    
+    if not anomalies.empty:
+        st.warning(f"Detected {len(anomalies)} anomalies in the current dataset.")
         
-        # 1. Anomaly Detection
-        st.markdown("### ⚠️ Performance Anomalies")
-        st.markdown("Automatic detection of unusual performance patterns (e.g., sudden ROAS drops or CPA spikes).")
-        
-        anomalies = detect_anomalies(df)
-        
-        if not anomalies.empty:
-            st.warning(f"Detected {len(anomalies)} anomalies in the current dataset.")
-            
-            # Show recent anomalies
-            recent_anomalies = anomalies.sort_values('date', ascending=False).head(5)
-            for idx, row in recent_anomalies.iterrows():
-                with st.expander(f"Anomaly detected on {row['date'].strftime('%Y-%m-%d')} ({row['platform']})"):
-                    c1, c2, c3 = st.columns(3)
-                    c1.metric("ROAS", f"{row['roas']:.2f}")
-                    c2.metric("CPA", f"${row['cpa']:.2f}")
-                    c3.metric("CTR", f"{row['ctr']:.2f}%")
-                    st.caption(f"Campaign: {row['campaign_name']}")
-        else:
-            st.success("No significant anomalies detected.")
+        # Show recent anomalies
+        recent_anomalies = anomalies.sort_values('date', ascending=False).head(5)
+        for idx, row in recent_anomalies.iterrows():
+            with st.expander(f"Anomaly detected on {row['date'].strftime('%Y-%m-%d')} ({row['platform']})"):
+                c1, c2, c3 = st.columns(3)
+                c1.metric("ROAS", f"{row['roas']:.2f}")
+                c2.metric("CPA", f"${row['cpa']:.2f}")
+                c3.metric("CTR", f"{row['ctr']:.2f}%")
+                st.caption(f"Campaign: {row['campaign_name']}")
+    else:
+        st.success("No significant anomalies detected.")
 
-        st.markdown("---")
+    st.markdown("---")
+    
+    # 2. ML Predictions
+    st.markdown("### 🔮 Conversion Predictor")
+    st.markdown("Predict conversions based on planned spend and historical performance.")
+    
+    c1, c2 = st.columns([1, 2])
+    
+    with c1:
+        st.markdown("#### Scenario Planner")
+        input_spend = st.number_input("Planned Spend ($)", min_value=100.0, max_value=10000.0, value=1000.0, step=100.0)
         
-        # 2. ML Predictions
-        st.markdown("### 🔮 Conversion Predictor")
-        st.markdown("Predict conversions based on planned spend and historical performance.")
+        # Heuristics for inputs based on averages
+        avg_cpc = df['cpc'].mean()
+        avg_ctr = df['ctr'].mean()
         
-        c1, c2 = st.columns([1, 2])
+        est_clicks = input_spend / avg_cpc if avg_cpc > 0 else 0
+        est_impressions = est_clicks / (avg_ctr / 100) if avg_ctr > 0 else 0
         
-        with c1:
-            st.markdown("#### Scenario Planner")
-            input_spend = st.number_input("Planned Spend ($)", min_value=100.0, max_value=10000.0, value=1000.0, step=100.0)
-            
-            # Heuristics for inputs based on averages
-            avg_cpc = df['cpc'].mean()
-            avg_ctr = df['ctr'].mean()
-            
-            est_clicks = input_spend / avg_cpc if avg_cpc > 0 else 0
-            est_impressions = est_clicks / (avg_ctr / 100) if avg_ctr > 0 else 0
-            
-            st.info(f"Estimated Impressions: {int(est_impressions):,}")
-            st.info(f"Estimated Clicks: {int(est_clicks):,}")
+        st.info(f"Estimated Impressions: {int(est_impressions):,}")
+        st.info(f"Estimated Clicks: {int(est_clicks):,}")
+    
+    with c2:
+        model = train_conversion_model(df)
         
-        with c2:
-            model = train_conversion_model(df)
-            
-            # Predict
-            # Features: ['spend', 'impressions', 'clicks']
-            input_data = pd.DataFrame({
-                'spend': [input_spend],
-                'impressions': [est_impressions],
-                'clicks': [est_clicks]
-            })
-            
-            prediction = model.predict(input_data)[0]
-            
-            st.metric("Predicted Conversions", f"{int(prediction)}")
-            
-            # Visualization of the model
-            st.markdown("#### Model Insights (Spend vs Conversions)")
-            fig_pred = px.scatter(df, x='spend', y='conversions', color='platform', opacity=0.6, title="Historical Spend vs Conversions", template=PLOTLY_TEMPLATE)
-            # Add the prediction point
-            fig_pred.add_traces(go.Scatter(x=[input_spend], y=[prediction], mode='markers', marker=dict(color='red', size=15, symbol='star'), name='Prediction'))
-            st.plotly_chart(fig_pred, width='stretch', config=PLOTLY_CONFIG)
+        # Predict
+        # Features: ['spend', 'impressions', 'clicks']
+        input_data = pd.DataFrame({
+            'spend': [input_spend],
+            'impressions': [est_impressions],
+            'clicks': [est_clicks]
+        })
+        
+        prediction = model.predict(input_data)[0]
+        
+        st.metric("Predicted Conversions", f"{int(prediction)}")
+        
+        # Visualization of the model
+        st.markdown("#### Model Insights (Spend vs Conversions)")
+        fig_pred = px.scatter(df, x='spend', y='conversions', color='platform', opacity=0.6, title="Historical Spend vs Conversions", template=PLOTLY_TEMPLATE)
+        # Add the prediction point
+        fig_pred.add_traces(go.Scatter(x=[input_spend], y=[prediction], mode='markers', marker=dict(color='red', size=15, symbol='star'), name='Prediction'))
+        st.plotly_chart(fig_pred, width='stretch', config=PLOTLY_CONFIG)
 
 # =============================
 # AUTHENTICATION
@@ -299,9 +299,9 @@ def main():
     
     # Navigation
     if st.session_state.user_role == 'Administrator':
-        page = st.sidebar.radio("Navigate", ["Dashboard", "Admin Settings"])
+        page = st.sidebar.radio("Navigate", ["Dashboard", "ML & Insights", "Admin Settings"])
     else:
-        page = "Dashboard"
+        page = st.sidebar.radio("Navigate", ["Dashboard", "ML & Insights"])
         
     if st.sidebar.button("Logout", key="logout_btn"):
         st.session_state.logged_in = False
@@ -312,6 +312,10 @@ def main():
             df = load_campaign_data()
         selected_platform, selected_campaigns, date_range = render_sidebar(df)
         render_dashboard(df, selected_platform)
+    elif page == "ML & Insights":
+        with st.spinner("Loading data..."):
+            df = load_campaign_data()
+        render_ml_insights(df)
     elif page == "Admin Settings":
         admin.render_admin_page()
 
