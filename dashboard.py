@@ -100,22 +100,22 @@ def train_conversion_model(df: pd.DataFrame):
     feature_cols = ['spend', 'impressions', 'clicks']
     X = df[feature_cols]
     y = df['conversions']
-    
+
     # Simple training (on full dataset for demo purposes)
     model = LinearRegression()
     model.fit(X, y)
-    
+
     return model
 
 def detect_anomalies(df: pd.DataFrame) -> pd.DataFrame:
     """Detect anomalies in ROAS using Isolation Forest."""
     # Prepare data for anomaly detection
     data = df[['roas', 'cpa', 'ctr']].fillna(0)
-    
+
     # Train Isolation Forest
     clf = IsolationForest(contamination=0.05, random_state=42)
     df['is_anomaly'] = clf.fit_predict(data)
-    
+
     # -1 indicates anomaly
     anomalies = df[df['is_anomaly'] == -1].copy()
     return anomalies
@@ -182,16 +182,16 @@ def render_dashboard(df: pd.DataFrame, selected_platform: str):
 
 def render_ml_insights(df: pd.DataFrame):
     st.title("🤖 Machine Learning & Insights")
-    
+
     # 1. Anomaly Detection
     st.markdown("### ⚠️ Performance Anomalies")
     st.markdown("Automatic detection of unusual performance patterns (e.g., sudden ROAS drops or CPA spikes).")
-    
+
     anomalies = detect_anomalies(df)
-    
+
     if not anomalies.empty:
         st.warning(f"Detected {len(anomalies)} anomalies in the current dataset.")
-        
+
         # Show recent anomalies
         recent_anomalies = anomalies.sort_values('date', ascending=False).head(5)
         for idx, row in recent_anomalies.iterrows():
@@ -205,30 +205,30 @@ def render_ml_insights(df: pd.DataFrame):
         st.success("No significant anomalies detected.")
 
     st.markdown("---")
-    
+
     # 2. ML Predictions
     st.markdown("### 🔮 Conversion Predictor")
     st.markdown("Predict conversions based on planned spend and historical performance.")
-    
+
     c1, c2 = st.columns([1, 2])
-    
+
     with c1:
         st.markdown("#### Scenario Planner")
         input_spend = st.number_input("Planned Spend ($)", min_value=100.0, max_value=10000.0, value=1000.0, step=100.0)
-        
+
         # Heuristics for inputs based on averages
         avg_cpc = df['cpc'].mean()
         avg_ctr = df['ctr'].mean()
-        
+
         est_clicks = input_spend / avg_cpc if avg_cpc > 0 else 0
         est_impressions = est_clicks / (avg_ctr / 100) if avg_ctr > 0 else 0
-        
+
         st.info(f"Estimated Impressions: {int(est_impressions):,}")
         st.info(f"Estimated Clicks: {int(est_clicks):,}")
-    
+
     with c2:
         model = train_conversion_model(df)
-        
+
         # Predict
         # Features: ['spend', 'impressions', 'clicks']
         input_data = pd.DataFrame({
@@ -236,11 +236,11 @@ def render_ml_insights(df: pd.DataFrame):
             'impressions': [est_impressions],
             'clicks': [est_clicks]
         })
-        
+
         prediction = model.predict(input_data)[0]
-        
+
         st.metric("Predicted Conversions", f"{int(prediction)}")
-        
+
         # Visualization of the model
         st.markdown("#### Model Insights (Spend vs Conversions)")
         fig_pred = px.scatter(df, x='spend', y='conversions', color='platform', opacity=0.6, title="Historical Spend vs Conversions", template=PLOTLY_TEMPLATE)
@@ -258,10 +258,10 @@ def login_page():
         st.markdown("<div class='login-container'>", unsafe_allow_html=True)
         st.title("🔐 Login")
         st.markdown("Please sign in to continue")
-        
+
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
-        
+
         if st.button("Login", use_container_width=True):
             user = next((u for u in st.session_state.users if u['username'] == username and u.get('password') == password), None)
             if user:
@@ -286,27 +286,27 @@ def login_page():
 def main():
     # Initialize Admin State (users)
     admin.initialize_admin_state()
-    
+
     if 'logged_in' not in st.session_state:
         st.session_state.logged_in = False
-        
+
     if not st.session_state.logged_in:
         login_page()
         return
 
     # If logged in
     st.sidebar.title(f"👤 {st.session_state.username}")
-    
+
     # Navigation
     if st.session_state.user_role == 'Administrator':
         page = st.sidebar.radio("Navigate", ["Dashboard", "ML & Insights", "Admin Settings"])
     else:
         page = st.sidebar.radio("Navigate", ["Dashboard", "ML & Insights"])
-        
+
     if st.sidebar.button("Logout", key="logout_btn"):
         st.session_state.logged_in = False
         st.rerun()
-        
+
     if page == "Dashboard":
         with st.spinner("Loading data..."):
             df = load_campaign_data()
