@@ -15,6 +15,27 @@ def apply_custom_css():
             background: #0e1117;
         }
 
+        /* Global Text Color - Make ALL text white */
+        .stApp, .stApp * {
+            color: #fafafa;
+        }
+
+        /* Main content area text */
+        .main .block-container {
+            color: #fafafa !important;
+        }
+
+        .main h1, .main h2, .main h3, .main h4, .main h5, .main h6,
+        .main p, .main span, .main label, .main div {
+            color: #fafafa !important;
+        }
+
+        /* Streamlit text elements */
+        .stMarkdown, .stMarkdown p, .stMarkdown span,
+        .stText, .stCaption, .stTitle, .stHeader, .stSubheader {
+            color: #fafafa !important;
+        }
+
         /* Sidebar Styling */
         [data-testid="stSidebar"] {
             background: #262730;
@@ -117,20 +138,47 @@ def apply_custom_css():
 
         /* Tab Styling */
         .stTabs [data-baseweb="tab-list"] {
-            gap: 10px;
+            gap: 8px;
             border-bottom: 2px solid #333;
+            background: transparent;
         }
 
         .stTabs [data-baseweb="tab"] {
-            padding: 15px 30px;
-            background: #262730;
-            border-radius: 5px 5px 0 0;
-            color: #fafafa;
+            padding: 12px 24px;
+            background: #262730 !important;
+            border-radius: 8px 8px 0 0;
+            color: #fafafa !important;
+            font-weight: 500;
+            border: 1px solid #333;
+            border-bottom: none;
+        }
+
+        .stTabs [data-baseweb="tab"]:hover {
+            background: #333 !important;
+            color: #fff !important;
         }
 
         .stTabs [aria-selected="true"] {
             background: #1f77b4 !important;
             color: white !important;
+            border-color: #1f77b4 !important;
+        }
+
+        .stTabs [data-baseweb="tab-panel"] {
+            background: transparent;
+            padding-top: 20px;
+        }
+
+        /* Tab content text */
+        .stTabs [data-baseweb="tab-panel"] p,
+        .stTabs [data-baseweb="tab-panel"] span,
+        .stTabs [data-baseweb="tab-panel"] div,
+        .stTabs [data-baseweb="tab-panel"] label,
+        .stTabs [data-baseweb="tab-panel"] h1,
+        .stTabs [data-baseweb="tab-panel"] h2,
+        .stTabs [data-baseweb="tab-panel"] h3,
+        .stTabs [data-baseweb="tab-panel"] h4 {
+            color: #fafafa !important;
         }
 
         /* Chart Container */
@@ -228,22 +276,92 @@ def apply_custom_css():
 
         /* Select boxes */
         .stSelectbox > div > div {
-            background: #1e1e1e;
-            border: 1px solid #444;
-            color: #fafafa;
+            background: #1e1e1e !important;
+            border: 1px solid #444 !important;
+            color: #fafafa !important;
+        }
+
+        .stSelectbox label {
+            color: #fafafa !important;
         }
 
         /* Date inputs */
         .stDateInput > div > div > input {
-            background: #1e1e1e;
-            border: 1px solid #444;
-            color: #fafafa;
+            background: #1e1e1e !important;
+            border: 1px solid #444 !important;
+            color: #fafafa !important;
+        }
+
+        .stDateInput label {
+            color: #fafafa !important;
         }
 
         /* Multiselect */
         .stMultiSelect > div > div {
-            background: #1e1e1e;
-            border: 1px solid #444;
+            background: #1e1e1e !important;
+            border: 1px solid #444 !important;
+        }
+
+        .stMultiSelect label,
+        .stMultiSelect span {
+            color: #fafafa !important;
+        }
+
+        /* Text inputs */
+        .stTextInput > div > div > input {
+            background: #1e1e1e !important;
+            border: 1px solid #444 !important;
+            color: #fafafa !important;
+        }
+
+        .stTextInput label {
+            color: #fafafa !important;
+        }
+
+        /* Number inputs */
+        .stNumberInput > div > div > input {
+            background: #1e1e1e !important;
+            border: 1px solid #444 !important;
+            color: #fafafa !important;
+        }
+
+        /* DataFrame / Table styling */
+        .stDataFrame {
+            background: #262730 !important;
+            border-radius: 10px;
+        }
+
+        .stDataFrame th {
+            background: #1f77b4 !important;
+            color: white !important;
+            padding: 12px !important;
+            font-weight: 600 !important;
+        }
+
+        .stDataFrame td {
+            background: #262730 !important;
+            color: #fafafa !important;
+            padding: 10px !important;
+            border-bottom: 1px solid #333 !important;
+        }
+
+        .stDataFrame tr:hover td {
+            background: #333 !important;
+        }
+
+        /* Subheader styling */
+        .stSubheader, h2, h3 {
+            color: #fafafa !important;
+        }
+
+        /* Info/Warning/Error boxes */
+        .stAlert {
+            background: #262730 !important;
+            border-radius: 8px;
+        }
+
+        .stAlert p, .stAlert span {
+            color: #fafafa !important;
         }
 
         /* Login Container */
