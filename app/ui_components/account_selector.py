@@ -13,8 +13,8 @@ from app.data_integration.meta_api import (
     get_available_accounts,
     fetch_meta_live_data,
     fetch_meta_campaigns,
+    get_config_values,
 )
-from config import USE_LIVE_META_DATA
 
 
 def render_account_selector(
@@ -199,7 +199,8 @@ def render_account_performance_comparison(
 
 def render_data_source_indicator() -> None:
     """Render indicator showing whether live or mock data is being used."""
-    if USE_LIVE_META_DATA:
+    cfg = get_config_values()
+    if cfg['use_live_data']:
         st.sidebar.success("🟢 Using Live Meta API Data")
     else:
         st.sidebar.info("🔵 Using Demo/Mock Data")

@@ -23,15 +23,23 @@ except ImportError:
     META_SDK_AVAILABLE = False
     logger.warning("facebook-business SDK not installed. Using mock data.")
 
-# Import config
+# Import config module (not values - to allow dynamic reading)
 import sys
 sys.path.insert(0, '.')
-from config import (
-    META_ACCESS_TOKEN,
-    META_AD_ACCOUNTS,
-    META_ACCOUNT_NAMES,
-    USE_LIVE_META_DATA
-)
+import config
+
+
+def get_config_values():
+    """Get fresh config values (supports Streamlit secrets reloading)."""
+    # Re-import to get fresh values from Streamlit secrets
+    import importlib
+    importlib.reload(config)
+    return {
+        'access_token': config.META_ACCESS_TOKEN,
+        'ad_accounts': config.META_AD_ACCOUNTS,
+        'account_names': config.META_ACCOUNT_NAMES,
+        'use_live_data': config.USE_LIVE_META_DATA,
+    }
 
 
 class MetaAdsClient:
@@ -85,12 +93,16 @@ class MetaAdsClient:
             access_token: Meta API access token (uses config if not provided)
             account_ids: List of ad account IDs (uses config if not provided)
         """
-        self.access_token = access_token or META_ACCESS_TOKEN
-        self.account_ids = account_ids or META_AD_ACCOUNTS
-        self.account_names = META_ACCOUNT_NAMES
+        # Get fresh config values
+        cfg = get_config_values()
+
+        self.access_token = access_token or cfg['access_token']
+        self.account_ids = account_ids or cfg['ad_accounts']
+        self.account_names = cfg['account_names']
+        self.use_live_data = cfg['use_live_data']
         self.initialized = False
 
-        if META_SDK_AVAILABLE and self.access_token and USE_LIVE_META_DATA:
+        if META_SDK_AVAILABLE and self.access_token and self.use_live_data:
             try:
                 FacebookAdsApi.init(access_token=self.access_token)
                 self.initialized = True
