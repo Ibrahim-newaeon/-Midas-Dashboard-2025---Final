@@ -256,6 +256,16 @@ def apply_custom_css():
             border: 1px solid #333;
         }
 
+        .login-container h1,
+        .login-container h2,
+        .login-container h3,
+        .login-container p,
+        .login-container span,
+        .login-container label,
+        .login-container div {
+            color: #fafafa !important;
+        }
+
         /* Divider */
         hr {
             border: 1px solid #333;
