@@ -26,7 +26,7 @@ from app.ui_components.account_selector import (
     render_data_source_indicator,
     init_account_session_state,
 )
-from app.data_integration.meta_api import get_available_accounts
+from app.data_integration.meta_api import get_available_accounts, fetch_meta_live_data, get_meta_client
 
 # =============================
 # PAGE CONFIG & STYLE
@@ -49,7 +49,63 @@ PLOTLY_CONFIG = app_utils.PLOTLY_CONFIG
 # =============================
 
 @st.cache_data(ttl=3600)
-def load_campaign_data() -> pd.DataFrame:
+def load_campaign_data(start_date: str = None, end_date: str = None, account_id: str = None) -> pd.DataFrame:
+    """
+    Load campaign data from Meta API.
+    Falls back to demo data if API is not configured or fails.
+    """
+    # Default date range: last 30 days
+    if not end_date:
+        end_date = datetime.now().strftime('%Y-%m-%d')
+    if not start_date:
+        start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+
+    # Try to fetch from Meta API
+    try:
+        df = fetch_meta_live_data(start_date, end_date, account_id)
+
+        if not df.empty:
+            # Normalize column names for dashboard compatibility
+            df = df.rename(columns={
+                'campaign_name': 'campaign_name',
+                'account_friendly_name': 'account_name',
+                'date_start': 'date',
+            })
+
+            # Ensure date column exists and is datetime
+            if 'date' in df.columns:
+                df['date'] = pd.to_datetime(df['date'])
+            elif 'date_start' in df.columns:
+                df['date'] = pd.to_datetime(df['date_start'])
+
+            # Add platform column (all Meta data)
+            df['platform'] = 'Meta Ads'
+
+            # Add region column (default, can be enhanced with geo breakdown)
+            df['region'] = 'Saudi Arabia'
+
+            # Ensure required columns exist
+            for col in ['impressions', 'clicks', 'spend', 'conversions', 'revenue']:
+                if col not in df.columns:
+                    df[col] = 0
+
+            # Calculate derived metrics
+            df['roas'] = (df['revenue'] / df['spend']).replace([np.inf, -np.inf], 0).fillna(0)
+            df['cpa'] = (df['spend'] / df['conversions']).replace([np.inf, -np.inf], 0).fillna(0)
+            df['ctr'] = (df['clicks'] / df['impressions'] * 100).replace([np.inf, -np.inf], 0).fillna(0)
+            df['cpc'] = (df['spend'] / df['clicks']).replace([np.inf, -np.inf], 0).fillna(0)
+            df['cpm'] = (df['spend'] / df['impressions'] * 1000).replace([np.inf, -np.inf], 0).fillna(0)
+
+            return df
+    except Exception as e:
+        st.warning(f"Could not fetch Meta API data: {e}. Using demo data.")
+
+    # Fallback to demo data
+    return _generate_demo_data()
+
+
+def _generate_demo_data() -> pd.DataFrame:
+    """Generate demo data when API is not available."""
     now = datetime.now()
     dates = pd.date_range(start=now - timedelta(days=90), end=now, freq="D")
     campaigns = [
@@ -62,8 +118,6 @@ def load_campaign_data() -> pd.DataFrame:
         "FB_Living_KWT_Ret_067",
         "TT_TopView_SAU_Brand_012"
     ]
-    platforms = ["Meta Ads", "Google Ads", "TikTok Ads", "Snapchat Ads"]
-    regions = ["Saudi Arabia", "UAE", "Qatar", "Kuwait"]
     rng = np.random.default_rng(42)
 
     rows = []
@@ -119,7 +173,8 @@ def load_campaign_data() -> pd.DataFrame:
 # SIDEBAR
 # =============================
 
-def render_sidebar(df: pd.DataFrame) -> Tuple[str, List[str], Tuple, List[str], Optional[str]]:
+def render_sidebar_filters() -> Tuple[List[str], List[str], Tuple, Optional[str]]:
+    """Render sidebar filters without requiring df initially."""
     # Logo
     st.sidebar.markdown('<div class="sidebar-logo">al-ai.ai</div>', unsafe_allow_html=True)
 
@@ -138,28 +193,30 @@ def render_sidebar(df: pd.DataFrame) -> Tuple[str, List[str], Tuple, List[str], 
 
     # Date Range
     st.sidebar.markdown('<h3 class="sidebar-header">📅 Date Range</h3>', unsafe_allow_html=True)
-    min_date, max_date = df['date'].min(), df['date'].max()
+    now = datetime.now()
+    min_date = now - timedelta(days=90)
+    max_date = now
     date_range = st.sidebar.date_input(
         "Select dates",
-        value=(max_date - timedelta(days=30), max_date),
+        value=(now - timedelta(days=30), now),
         min_value=min_date,
         max_value=max_date,
         label_visibility="collapsed"
     )
 
-    # Platform Filter
+    # Platform Filter (Meta is the only platform for now with live API)
     st.sidebar.markdown('<h3 class="sidebar-header">🔧 Platform Filter</h3>', unsafe_allow_html=True)
-    platforms = sorted(df['platform'].unique().tolist())
+    platforms = ["Meta Ads", "Google Ads", "TikTok Ads", "Snapchat Ads"]
     selected_platforms = st.sidebar.multiselect(
         "Select platforms",
         platforms,
-        default=platforms,
+        default=["Meta Ads"],
         label_visibility="collapsed"
     )
 
     # Region Filter
     st.sidebar.markdown('<h3 class="sidebar-header">🌍 Region</h3>', unsafe_allow_html=True)
-    regions = sorted(df['region'].unique().tolist())
+    regions = ["Saudi Arabia", "UAE", "Qatar", "Kuwait"]
     selected_regions = st.sidebar.multiselect(
         "Select regions",
         regions,
@@ -171,30 +228,6 @@ def render_sidebar(df: pd.DataFrame) -> Tuple[str, List[str], Tuple, List[str], 
     if st.sidebar.button("🔄 Refresh Data", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
-
-    # Export section
-    st.sidebar.markdown('<h3 class="sidebar-header">📤 Export Options</h3>', unsafe_allow_html=True)
-    export_format = st.sidebar.selectbox(
-        "Format",
-        ["CSV", "Excel"],
-        label_visibility="collapsed"
-    )
-
-    if st.sidebar.button("📥 Export Data", use_container_width=True):
-        # Filter data
-        filtered = df[
-            (df['platform'].isin(selected_platforms)) &
-            (df['region'].isin(selected_regions))
-        ]
-        if export_format == "CSV":
-            st.sidebar.download_button(
-                "Download CSV",
-                filtered.to_csv(index=False),
-                "campaign_data.csv",
-                "text/csv"
-            )
-        else:
-            st.sidebar.info("Excel export coming soon!")
 
     return selected_platforms, selected_regions, date_range, selected_account_id
 
@@ -565,11 +598,19 @@ def main():
         st.session_state.logged_in = False
         st.rerun()
 
-    with st.spinner("Loading data..."):
-        df = load_campaign_data()
-
-    selected_platforms, selected_regions, date_range, selected_account_id = render_sidebar(df)
+    # Render sidebar first to get filters
+    selected_platforms, selected_regions, date_range, selected_account_id = render_sidebar_filters()
     st.session_state.selected_account_id = selected_account_id
+
+    # Load data based on selected account and date range
+    with st.spinner("Loading data from Meta API..."):
+        start_date = None
+        end_date = None
+        if isinstance(date_range, tuple) and len(date_range) == 2:
+            start_date = date_range[0].strftime('%Y-%m-%d')
+            end_date = date_range[1].strftime('%Y-%m-%d')
+
+        df = load_campaign_data(start_date, end_date, selected_account_id)
 
     render_dashboard(df, selected_platforms, selected_regions, date_range)
 
