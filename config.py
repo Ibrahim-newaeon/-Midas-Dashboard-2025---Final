@@ -2,6 +2,46 @@
 # Configuration file for Midas Furniture Dashboard
 
 import os
+import json
+
+# ============================================================================
+# HELPER FUNCTION FOR STREAMLIT SECRETS
+# ============================================================================
+
+def get_secret(key, default=''):
+    """Get value from Streamlit secrets or environment variable."""
+    # Try Streamlit secrets first
+    try:
+        import streamlit as st
+        if key in st.secrets:
+            return st.secrets[key]
+    except:
+        pass
+    # Fall back to environment variable
+    return os.getenv(key, default)
+
+def get_secret_dict(key):
+    """Get dictionary from Streamlit secrets or environment variable."""
+    # Try Streamlit secrets first (nested TOML format)
+    try:
+        import streamlit as st
+        if key in st.secrets:
+            secret_val = st.secrets[key]
+            # If it's already a dict-like object (from TOML section)
+            if hasattr(secret_val, 'to_dict'):
+                return dict(secret_val.to_dict())
+            elif isinstance(secret_val, dict):
+                return secret_val
+            elif isinstance(secret_val, str):
+                return json.loads(secret_val)
+    except:
+        pass
+    # Fall back to environment variable (JSON string)
+    env_val = os.getenv(key, '{}')
+    try:
+        return json.loads(env_val)
+    except:
+        return {}
 
 # ============================================================================
 # DATABASE CONFIGURATION
@@ -25,25 +65,26 @@ os.makedirs('models', exist_ok=True)
 # ============================================================================
 
 # Meta (Facebook) Ads API - Multi-Account Support
-META_ACCESS_TOKEN = os.getenv('META_ACCESS_TOKEN', '')
+META_ACCESS_TOKEN = get_secret('META_ACCESS_TOKEN', '')
 
 # Single account (legacy support)
-META_AD_ACCOUNT_ID = os.getenv('META_AD_ACCOUNT_ID', '')
+META_AD_ACCOUNT_ID = get_secret('META_AD_ACCOUNT_ID', '')
 
 # Multiple accounts - comma-separated list: "act_111111,act_222222,act_333333"
-META_AD_ACCOUNTS = [acc.strip() for acc in os.getenv('META_AD_ACCOUNTS', '').split(',') if acc.strip()]
+_meta_accounts_str = get_secret('META_AD_ACCOUNTS', '')
+META_AD_ACCOUNTS = [acc.strip() for acc in _meta_accounts_str.split(',') if acc.strip()]
 
 # If no multi-account config, fall back to single account
 if not META_AD_ACCOUNTS and META_AD_ACCOUNT_ID:
     META_AD_ACCOUNTS = [META_AD_ACCOUNT_ID]
 
-# Account name mapping (optional) - JSON format
-# Example: {"act_111111": "Client A", "act_222222": "Client B"}
-import json
-META_ACCOUNT_NAMES = json.loads(os.getenv('META_ACCOUNT_NAMES', '{}'))
+# Account name mapping (optional)
+# Supports both TOML section format and JSON string
+META_ACCOUNT_NAMES = get_secret_dict('META_ACCOUNT_NAMES')
 
 # Use live API data (set to True when credentials are configured)
-USE_LIVE_META_DATA = os.getenv('USE_LIVE_META_DATA', 'false').lower() == 'true'
+_use_live = get_secret('USE_LIVE_META_DATA', 'false')
+USE_LIVE_META_DATA = str(_use_live).lower() == 'true'
 
 # Google Ads API
 GOOGLE_DEVELOPER_TOKEN = os.getenv('GOOGLE_DEVELOPER_TOKEN', '')
