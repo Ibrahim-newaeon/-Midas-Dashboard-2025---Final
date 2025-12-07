@@ -51,7 +51,7 @@ python-dateutil>=2.8.0
 # API INTEGRATIONS (Optional - for live data)
 # ============================================================================
 requests>=2.31.0
-# facebook-business>=17.0.0  # Uncomment when ready for Meta API
+facebook-business>=17.0.0  # Meta Ads API - Multi-Account Support
 # google-ads>=22.0.0  # Uncomment when ready for Google Ads API
 
 # ============================================================================

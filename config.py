@@ -24,9 +24,26 @@ os.makedirs('models', exist_ok=True)
 # API CREDENTIALS (Optional - for future live data integration)
 # ============================================================================
 
-# Meta (Facebook) Ads API
+# Meta (Facebook) Ads API - Multi-Account Support
 META_ACCESS_TOKEN = os.getenv('META_ACCESS_TOKEN', '')
+
+# Single account (legacy support)
 META_AD_ACCOUNT_ID = os.getenv('META_AD_ACCOUNT_ID', '')
+
+# Multiple accounts - comma-separated list: "act_111111,act_222222,act_333333"
+META_AD_ACCOUNTS = [acc.strip() for acc in os.getenv('META_AD_ACCOUNTS', '').split(',') if acc.strip()]
+
+# If no multi-account config, fall back to single account
+if not META_AD_ACCOUNTS and META_AD_ACCOUNT_ID:
+    META_AD_ACCOUNTS = [META_AD_ACCOUNT_ID]
+
+# Account name mapping (optional) - JSON format
+# Example: {"act_111111": "Client A", "act_222222": "Client B"}
+import json
+META_ACCOUNT_NAMES = json.loads(os.getenv('META_ACCOUNT_NAMES', '{}'))
+
+# Use live API data (set to True when credentials are configured)
+USE_LIVE_META_DATA = os.getenv('USE_LIVE_META_DATA', 'false').lower() == 'true'
 
 # Google Ads API
 GOOGLE_DEVELOPER_TOKEN = os.getenv('GOOGLE_DEVELOPER_TOKEN', '')

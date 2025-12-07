@@ -11,11 +11,22 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Tuple, Optional
 import plotly.express as px
 import plotly.graph_objects as go
 import admin_page as admin
 import app_utils
+
+# Multi-Account Support
+from app.ui_components.account_selector import (
+    render_account_selector,
+    render_data_source_indicator,
+    render_account_performance_comparison,
+    get_filtered_data,
+    init_account_session_state,
+)
+from app.data_integration.meta_api import get_available_accounts
+from config import USE_LIVE_META_DATA
 
 # =============================
 # PAGE CONFIG & STYLE
@@ -72,10 +83,23 @@ def load_campaign_data() -> pd.DataFrame:
 # SIDEBAR
 # =============================
 
-def render_sidebar(df: pd.DataFrame):
+def render_sidebar(df: pd.DataFrame) -> Tuple[str, List[str], Tuple, Optional[str]]:
     st.sidebar.image("https://midasfurniture.com/logo.png", width=180)
     st.sidebar.markdown("---")
+
+    # Data source indicator
+    render_data_source_indicator()
+
+    st.sidebar.markdown("---")
     st.sidebar.title("🧭 Navigation")
+
+    # Multi-Account Selector
+    st.sidebar.subheader("📊 Ad Account")
+    account_label, selected_account_id = render_account_selector(
+        key="main_account_selector",
+        show_all_option=True,
+        sidebar=True,
+    )
 
     platforms = ["All"] + sorted(df['platform'].unique().tolist())
     selected_platform = st.sidebar.selectbox("🌐 Platform", platforms, index=1)
@@ -94,7 +118,7 @@ def render_sidebar(df: pd.DataFrame):
     st.sidebar.metric("Avg ROAS", f"{avg_roas:.2f}x", delta="Target: 2.5x")
 
     st.sidebar.caption(f"🕐 Updated: {datetime.now().strftime('%H:%M:%S')}")
-    return selected_platform, selected_campaigns, date_range
+    return selected_platform, selected_campaigns, date_range, selected_account_id
 
 # =============================
 # MAIN DASHBOARD
@@ -179,25 +203,32 @@ def login_page():
 def main():
     # Initialize Admin State (users)
     admin.initialize_admin_state()
-    
+
+    # Initialize account session state
+    init_account_session_state()
+
     if 'logged_in' not in st.session_state:
         st.session_state.logged_in = False
-        
+
     if not st.session_state.logged_in:
         login_page()
         return
 
     # If logged in
     st.sidebar.title(f"👤 {st.session_state.username}")
-    
+
     # Logout button
     if st.sidebar.button("Logout", key="logout_btn"):
         st.session_state.logged_in = False
         st.rerun()
-        
+
     with st.spinner("Loading data..."):
         df = load_campaign_data()
-    selected_platform, selected_campaigns, date_range = render_sidebar(df)
+    selected_platform, selected_campaigns, date_range, selected_account_id = render_sidebar(df)
+
+    # Store selected account in session state for other components
+    st.session_state.selected_account_id = selected_account_id
+
     render_dashboard(df, selected_platform)
 
 if __name__ == "__main__":

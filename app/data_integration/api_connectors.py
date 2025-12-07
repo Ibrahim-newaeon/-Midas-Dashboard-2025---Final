@@ -1,13 +1,93 @@
 import pandas as pd
 import numpy as np
 from faker import Faker
+from typing import Optional
 
 fake = Faker()
 
-def fetch_meta_data(start_date: str, end_date: str) -> pd.DataFrame:
-    main_ad = {'report_date': [start_date], 'ad_id': ['META_AD01'], 'campaign_id': ['META_C01'], 'impressions': [np.random.randint(5000, 15000)], 'reach': [np.random.randint(4000, 10000)], 'frequency': [np.random.uniform(1.5, 4.5)], 'clicks': [np.random.randint(50, 200)], 'spend': [np.random.uniform(100.0, 300.0)], 'conversions': [np.random.randint(0, 5)], 'revenue': [np.random.uniform(0, 2500.0) if np.random.rand() > 0.5 else 0]}
-    test_ad_A = {'report_date': [start_date], 'ad_id': ['META_AD05_A'], 'campaign_id': ['META_C01'], 'impressions': [np.random.randint(1000, 2000)], 'reach': [np.random.randint(800, 1800)], 'frequency': [np.random.uniform(1.0, 2.0)], 'clicks': [np.random.randint(10, 25)], 'spend': [np.random.uniform(15.0, 30.0)], 'conversions': [np.random.randint(0, 2)], 'revenue': [np.random.uniform(0, 300.0) if np.random.rand() > 0.6 else 0]}
-    test_ad_B = {'report_date': [start_date], 'ad_id': ['META_AD05_B'], 'campaign_id': ['META_C01'], 'impressions': [np.random.randint(1000, 2000)], 'reach': [np.random.randint(800, 1800)], 'frequency': [np.random.uniform(1.0, 2.0)], 'clicks': [np.random.randint(15, 35)], 'spend': [np.random.uniform(15.0, 30.0)], 'conversions': [np.random.randint(0, 3)], 'revenue': [np.random.uniform(0, 400.0) if np.random.rand() > 0.5 else 0]}
+# Import Meta API client for live data
+from app.data_integration.meta_api import (
+    fetch_meta_live_data,
+    fetch_meta_campaigns,
+    get_available_accounts,
+    get_meta_client,
+)
+from config import USE_LIVE_META_DATA
+
+
+def fetch_meta_data(start_date: str, end_date: str, account_id: Optional[str] = None) -> pd.DataFrame:
+    """
+    Fetch Meta (Facebook) Ads data.
+
+    Uses live API data if USE_LIVE_META_DATA=true and credentials are configured,
+    otherwise falls back to mock data.
+
+    Args:
+        start_date: Start date (YYYY-MM-DD)
+        end_date: End date (YYYY-MM-DD)
+        account_id: Optional specific account ID (fetches all if None)
+
+    Returns:
+        DataFrame with ad performance data
+    """
+    if USE_LIVE_META_DATA:
+        # Use live Meta API
+        df = fetch_meta_live_data(start_date, end_date, account_id)
+        if not df.empty:
+            # Rename columns to match expected format
+            df = df.rename(columns={
+                'date_start': 'report_date',
+            })
+            return df
+
+    # Fallback to mock data
+    return _generate_mock_meta_data(start_date, account_id)
+
+
+def _generate_mock_meta_data(start_date: str, account_id: Optional[str] = None) -> pd.DataFrame:
+    """Generate mock Meta data (legacy function)."""
+    # Get account prefix for IDs
+    acc_prefix = account_id[-6:] if account_id else 'DEMO'
+
+    main_ad = {
+        'report_date': [start_date],
+        'ad_id': [f'{acc_prefix}_AD01'],
+        'campaign_id': [f'{acc_prefix}_C01'],
+        'impressions': [np.random.randint(5000, 15000)],
+        'reach': [np.random.randint(4000, 10000)],
+        'frequency': [np.random.uniform(1.5, 4.5)],
+        'clicks': [np.random.randint(50, 200)],
+        'spend': [np.random.uniform(100.0, 300.0)],
+        'conversions': [np.random.randint(0, 5)],
+        'revenue': [np.random.uniform(0, 2500.0) if np.random.rand() > 0.5 else 0],
+        'account_id': [account_id or 'act_demo'],
+    }
+    test_ad_A = {
+        'report_date': [start_date],
+        'ad_id': [f'{acc_prefix}_AD05_A'],
+        'campaign_id': [f'{acc_prefix}_C01'],
+        'impressions': [np.random.randint(1000, 2000)],
+        'reach': [np.random.randint(800, 1800)],
+        'frequency': [np.random.uniform(1.0, 2.0)],
+        'clicks': [np.random.randint(10, 25)],
+        'spend': [np.random.uniform(15.0, 30.0)],
+        'conversions': [np.random.randint(0, 2)],
+        'revenue': [np.random.uniform(0, 300.0) if np.random.rand() > 0.6 else 0],
+        'account_id': [account_id or 'act_demo'],
+    }
+    test_ad_B = {
+        'report_date': [start_date],
+        'ad_id': [f'{acc_prefix}_AD05_B'],
+        'campaign_id': [f'{acc_prefix}_C01'],
+        'impressions': [np.random.randint(1000, 2000)],
+        'reach': [np.random.randint(800, 1800)],
+        'frequency': [np.random.uniform(1.0, 2.0)],
+        'clicks': [np.random.randint(15, 35)],
+        'spend': [np.random.uniform(15.0, 30.0)],
+        'conversions': [np.random.randint(0, 3)],
+        'revenue': [np.random.uniform(0, 400.0) if np.random.rand() > 0.5 else 0],
+        'account_id': [account_id or 'act_demo'],
+    }
     return pd.concat([pd.DataFrame(main_ad), pd.DataFrame(test_ad_A), pd.DataFrame(test_ad_B)], ignore_index=True)
 
 def fetch_google_data(start_date: str, end_date: str) -> pd.DataFrame:
