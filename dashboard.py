@@ -327,7 +327,7 @@ def render_overview_tab(df: pd.DataFrame):
         st.markdown('<div class="chart-container"><h3>🎯 ROAS by Platform</h3>', unsafe_allow_html=True)
         platform_roas = df.groupby('platform').apply(
             lambda x: x['revenue'].sum() / x['spend'].sum() if x['spend'].sum() > 0 else 0
-        ).reset_index(name='roas')
+        ).to_frame(name='roas').reset_index()
         fig = px.bar(
             platform_roas,
             x='platform',
@@ -444,7 +444,7 @@ def render_platform_tab(df: pd.DataFrame):
         st.markdown('<div class="chart-container"><h3>CPA Trend</h3>', unsafe_allow_html=True)
         daily_cpa = platform_df.groupby('date').apply(
             lambda x: x['spend'].sum() / x['conversions'].sum() if x['conversions'].sum() > 0 else 0
-        ).reset_index(name='cpa')
+        ).to_frame(name='cpa').reset_index()
         fig = px.line(daily_cpa, x='date', y='cpa', template=PLOTLY_TEMPLATE)
         fig.update_traces(line_color='#1f77b4')
         fig.update_layout(
