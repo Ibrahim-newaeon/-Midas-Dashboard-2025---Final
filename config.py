@@ -71,7 +71,7 @@ META_ACCESS_TOKEN = get_secret('META_ACCESS_TOKEN', '')
 META_AD_ACCOUNT_ID = get_secret('META_AD_ACCOUNT_ID', '')
 
 # Multiple accounts - comma-separated list: "act_111111,act_222222,act_333333"
-_meta_accounts_str = get_secret('META_AD_ACCOUNTS', '')
+_meta_accounts_str = str(get_secret('META_AD_ACCOUNTS', ''))
 META_AD_ACCOUNTS = [acc.strip() for acc in _meta_accounts_str.split(',') if acc.strip()]
 
 # If no multi-account config, fall back to single account
