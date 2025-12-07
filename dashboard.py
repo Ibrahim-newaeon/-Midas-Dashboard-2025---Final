@@ -1,10 +1,6 @@
 """
-Midas Furniture Campaign Analytics Dashboard — Platform-Smart Metrics
-Version: 6.1 (Streamlit 2026 Ready: Width + Config Compatibility)
-
-- Updated to replace deprecated `use_container_width` with `width='stretch'`
-- All Plotly charts use the new `config` parameter instead of deprecated keyword args
-- Retains vibrant sidebar + tab color theming
+Digital Media Buying Dashboard - al-ai.ai
+Version: 3.0 - New Design with Multi-Account Support
 """
 
 import streamlit as st
@@ -16,25 +12,29 @@ import plotly.express as px
 import plotly.graph_objects as go
 import admin_page as admin
 import app_utils
+from app_utils import (
+    render_header_banner,
+    render_kpi_card,
+    render_alert,
+    render_footer,
+    PLOTLY_COLORS,
+)
 
 # Multi-Account Support
 from app.ui_components.account_selector import (
     render_account_selector,
     render_data_source_indicator,
-    render_account_performance_comparison,
-    get_filtered_data,
     init_account_session_state,
 )
 from app.data_integration.meta_api import get_available_accounts
-from config import USE_LIVE_META_DATA
 
 # =============================
 # PAGE CONFIG & STYLE
 # =============================
 
 st.set_page_config(
-    page_title="Midas Analytics Platform",
-    page_icon="🛋️",
+    page_title="al-ai.ai | Digital Media Dashboard",
+    page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -52,24 +52,60 @@ PLOTLY_CONFIG = app_utils.PLOTLY_CONFIG
 def load_campaign_data() -> pd.DataFrame:
     now = datetime.now()
     dates = pd.date_range(start=now - timedelta(days=90), end=now, freq="D")
-    campaigns = ["Spring Sale 2025", "Summer Collection", "Bedroom Special", "Living Room Deals", "Office Furniture"]
-    platforms = ["Meta", "Google", "TikTok", "Snapchat"]
+    campaigns = [
+        "FB_Furniture_SAU_Ret_001",
+        "GGL_Search_SAU_Conv_045",
+        "TT_Feed_UAE_Pros_022",
+        "META_Bedroom_KSA_Ret_089",
+        "GGL_Shopping_UAE_Conv_033",
+        "SNAP_Story_QAT_Aware_015",
+        "FB_Living_KWT_Ret_067",
+        "TT_TopView_SAU_Brand_012"
+    ]
+    platforms = ["Meta Ads", "Google Ads", "TikTok Ads", "Snapchat Ads"]
+    regions = ["Saudi Arabia", "UAE", "Qatar", "Kuwait"]
     rng = np.random.default_rng(42)
 
     rows = []
     for date in dates:
         for campaign in campaigns:
-            for platform in platforms:
-                spend = rng.uniform(500, 2000)
-                impressions = int(spend * rng.uniform(800, 1200))
-                clicks = max(1, int(impressions * rng.uniform(0.008, 0.035)))
-                conversions = max(0, int(clicks * rng.uniform(0.02, 0.08)))
-                revenue = conversions * rng.uniform(300, 800)
-                rows.append({
-                    'date': date, 'campaign_name': campaign, 'platform': platform,
-                    'spend': spend, 'impressions': impressions, 'clicks': clicks,
-                    'conversions': conversions, 'revenue': revenue
-                })
+            # Determine platform based on campaign prefix
+            if campaign.startswith("FB") or campaign.startswith("META"):
+                platform = "Meta Ads"
+            elif campaign.startswith("GGL"):
+                platform = "Google Ads"
+            elif campaign.startswith("TT"):
+                platform = "TikTok Ads"
+            else:
+                platform = "Snapchat Ads"
+
+            # Determine region based on campaign suffix
+            if "SAU" in campaign or "KSA" in campaign:
+                region = "Saudi Arabia"
+            elif "UAE" in campaign:
+                region = "UAE"
+            elif "QAT" in campaign:
+                region = "Qatar"
+            else:
+                region = "Kuwait"
+
+            spend = rng.uniform(500, 2500)
+            impressions = int(spend * rng.uniform(800, 1200))
+            clicks = max(1, int(impressions * rng.uniform(0.015, 0.045)))
+            conversions = max(0, int(clicks * rng.uniform(0.03, 0.10)))
+            revenue = conversions * rng.uniform(150, 450)
+
+            rows.append({
+                'date': date,
+                'campaign_name': campaign,
+                'platform': platform,
+                'region': region,
+                'spend': spend,
+                'impressions': impressions,
+                'clicks': clicks,
+                'conversions': conversions,
+                'revenue': revenue
+            })
 
     df = pd.DataFrame(rows)
     df['roas'] = (df['revenue'] / df['spend']).replace([np.inf, -np.inf], 0).fillna(0)
@@ -83,87 +119,398 @@ def load_campaign_data() -> pd.DataFrame:
 # SIDEBAR
 # =============================
 
-def render_sidebar(df: pd.DataFrame) -> Tuple[str, List[str], Tuple, Optional[str]]:
-    st.sidebar.image("https://midasfurniture.com/logo.png", width=180)
-    st.sidebar.markdown("---")
+def render_sidebar(df: pd.DataFrame) -> Tuple[str, List[str], Tuple, List[str], Optional[str]]:
+    # Logo
+    st.sidebar.markdown('<div class="sidebar-logo">al-ai.ai</div>', unsafe_allow_html=True)
 
     # Data source indicator
     render_data_source_indicator()
 
     st.sidebar.markdown("---")
-    st.sidebar.title("🧭 Navigation")
 
-    # Multi-Account Selector
-    st.sidebar.subheader("📊 Ad Account")
+    # Ad Account Selector
+    st.sidebar.markdown('<h3 class="sidebar-header">📊 Ad Account</h3>', unsafe_allow_html=True)
     account_label, selected_account_id = render_account_selector(
         key="main_account_selector",
         show_all_option=True,
         sidebar=True,
     )
 
-    platforms = ["All"] + sorted(df['platform'].unique().tolist())
-    selected_platform = st.sidebar.selectbox("🌐 Platform", platforms, index=1)
-
+    # Date Range
+    st.sidebar.markdown('<h3 class="sidebar-header">📅 Date Range</h3>', unsafe_allow_html=True)
     min_date, max_date = df['date'].min(), df['date'].max()
-    date_range = st.sidebar.date_input("📅 Date Range", value=(min_date, max_date), min_value=min_date, max_value=max_date)
+    date_range = st.sidebar.date_input(
+        "Select dates",
+        value=(max_date - timedelta(days=30), max_date),
+        min_value=min_date,
+        max_value=max_date,
+        label_visibility="collapsed"
+    )
 
-    campaigns = sorted(df['campaign_name'].unique().tolist())
-    selected_campaigns = st.sidebar.multiselect("🎯 Campaigns", campaigns, default=campaigns)
+    # Platform Filter
+    st.sidebar.markdown('<h3 class="sidebar-header">🔧 Platform Filter</h3>', unsafe_allow_html=True)
+    platforms = sorted(df['platform'].unique().tolist())
+    selected_platforms = st.sidebar.multiselect(
+        "Select platforms",
+        platforms,
+        default=platforms,
+        label_visibility="collapsed"
+    )
 
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("⚡ Quick Stats")
-    st.sidebar.metric("Active Campaigns", f"{df['campaign_name'].nunique()}")
-    st.sidebar.metric("Total Spend", f"${df['spend'].sum():,.0f}")
-    avg_roas = (df['revenue'].sum() / df['spend'].sum()) if df['spend'].sum() > 0 else 0
-    st.sidebar.metric("Avg ROAS", f"{avg_roas:.2f}x", delta="Target: 2.5x")
+    # Region Filter
+    st.sidebar.markdown('<h3 class="sidebar-header">🌍 Region</h3>', unsafe_allow_html=True)
+    regions = sorted(df['region'].unique().tolist())
+    selected_regions = st.sidebar.multiselect(
+        "Select regions",
+        regions,
+        default=regions,
+        label_visibility="collapsed"
+    )
 
-    st.sidebar.caption(f"🕐 Updated: {datetime.now().strftime('%H:%M:%S')}")
-    return selected_platform, selected_campaigns, date_range, selected_account_id
+    # Refresh button
+    if st.sidebar.button("🔄 Refresh Data", use_container_width=True):
+        st.cache_data.clear()
+        st.rerun()
+
+    # Export section
+    st.sidebar.markdown('<h3 class="sidebar-header">📤 Export Options</h3>', unsafe_allow_html=True)
+    export_format = st.sidebar.selectbox(
+        "Format",
+        ["CSV", "Excel"],
+        label_visibility="collapsed"
+    )
+
+    if st.sidebar.button("📥 Export Data", use_container_width=True):
+        # Filter data
+        filtered = df[
+            (df['platform'].isin(selected_platforms)) &
+            (df['region'].isin(selected_regions))
+        ]
+        if export_format == "CSV":
+            st.sidebar.download_button(
+                "Download CSV",
+                filtered.to_csv(index=False),
+                "campaign_data.csv",
+                "text/csv"
+            )
+        else:
+            st.sidebar.info("Excel export coming soon!")
+
+    return selected_platforms, selected_regions, date_range, selected_account_id
 
 # =============================
 # MAIN DASHBOARD
 # =============================
 
-def render_dashboard(df: pd.DataFrame, selected_platform: str):
-    st.title("✨ Midas Campaign Analytics Dashboard")
+def render_dashboard(df: pd.DataFrame, selected_platforms: List[str], selected_regions: List[str], date_range):
+    # Filter data
+    if isinstance(date_range, tuple) and len(date_range) == 2:
+        start_date, end_date = date_range
+        df = df[(df['date'] >= pd.Timestamp(start_date)) & (df['date'] <= pd.Timestamp(end_date))]
 
-    tabs = st.tabs(["🟩 Overview", "🟥 Platform Deep Dive", "🟦 Top Campaigns"])
+    df = df[df['platform'].isin(selected_platforms)]
+    df = df[df['region'].isin(selected_regions)]
+
+    # Header Banner
+    last_updated = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    render_header_banner(
+        "📊 Digital Media Buying Performance Dashboard",
+        f"Last Updated: {last_updated} | Data Source: Sample Data (Demo)"
+    )
+
+    # Tabs
+    tabs = st.tabs(["📈 Overview", "🎯 Platform Deep-Dive", "💰 Budget Optimizer", "🚨 Alerts & Insights", "📊 Detailed Reports"])
 
     with tabs[0]:
-        st.subheader("Overview Metrics")
-        c1, c2 = st.columns(2)
-        with c1:
-            st.markdown('<div class="grafana-panel"><div class="panel-header">Revenue by Platform</div>', unsafe_allow_html=True)
-            fig1 = px.bar(df, x='platform', y='revenue', color='platform', template=PLOTLY_TEMPLATE)
-            fig1.update_layout(margin=dict(l=0, r=0, t=0, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-            st.plotly_chart(fig1, width='stretch', config=PLOTLY_CONFIG)
-            st.markdown('</div>', unsafe_allow_html=True)
-        with c2:
-            st.markdown('<div class="grafana-panel"><div class="panel-header">ROAS Over Time</div>', unsafe_allow_html=True)
-            fig2 = px.line(df.groupby('date')['roas'].mean().reset_index(), x='date', y='roas', template=PLOTLY_TEMPLATE)
-            fig2.update_layout(margin=dict(l=0, r=0, t=0, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-            st.plotly_chart(fig2, width='stretch', config=PLOTLY_CONFIG)
-            st.markdown('</div>', unsafe_allow_html=True)
+        render_overview_tab(df)
 
     with tabs[1]:
-        st.subheader(f"Deep Dive: {selected_platform}")
-        c1, c2 = st.columns(2)
-        st.markdown('<div class="grafana-panel"><div class="panel-header">CTR vs CPM</div>', unsafe_allow_html=True)
-        fig3 = px.scatter(df, x='cpm', y='ctr', size='impressions', color='platform', template=PLOTLY_TEMPLATE)
-        fig3.update_layout(margin=dict(l=0, r=0, t=0, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        c1.plotly_chart(fig3, width='stretch', config=PLOTLY_CONFIG)
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        st.markdown('<div class="grafana-panel"><div class="panel-header">CPA Trend</div>', unsafe_allow_html=True)
-        fig4 = px.line(df.groupby('date')['cpa'].mean().reset_index(), x='date', y='cpa', template=PLOTLY_TEMPLATE)
-        fig4.update_layout(margin=dict(l=0, r=0, t=0, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        c2.plotly_chart(fig4, width='stretch', config=PLOTLY_CONFIG)
-        st.markdown('</div>', unsafe_allow_html=True)
+        render_platform_tab(df)
 
     with tabs[2]:
-        st.subheader("Top Performing Campaigns")
-        top = df.groupby('campaign_name').agg({'spend':'sum','revenue':'sum'}).reset_index().sort_values('revenue',ascending=False).head(10)
-        st.dataframe(top, width='stretch', hide_index=True)
+        render_budget_tab(df)
+
+    with tabs[3]:
+        render_alerts_tab(df)
+
+    with tabs[4]:
+        render_reports_tab(df)
+
+    # Footer
+    render_footer()
+
+def render_overview_tab(df: pd.DataFrame):
+    # KPI Cards
+    total_spend = df['spend'].sum()
+    total_revenue = df['revenue'].sum()
+    total_roas = total_revenue / total_spend if total_spend > 0 else 0
+    total_conversions = df['conversions'].sum()
+    avg_cpa = total_spend / total_conversions if total_conversions > 0 else 0
+    avg_ctr = df['ctr'].mean()
+
+    # KPI Row
+    cols = st.columns(6)
+    with cols[0]:
+        render_kpi_card("💰 Total Spend", f"${total_spend:,.2f}", "+12.4% vs last period")
+    with cols[1]:
+        render_kpi_card("💵 Total Revenue", f"${total_revenue:,.2f}", "+18.7% vs last period")
+    with cols[2]:
+        render_kpi_card("📊 ROAS", f"{total_roas:.2f}x", "+0.35x vs target")
+    with cols[3]:
+        render_kpi_card("🎯 Conversions", f"{total_conversions:,}", "+15.2% vs last period")
+    with cols[4]:
+        render_kpi_card("💳 CPA", f"${avg_cpa:.2f}", "-$5.12", delta_negative=True)
+    with cols[5]:
+        render_kpi_card("👆 CTR", f"{avg_ctr:.2f}%", "+0.38%")
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+
+    # Charts Row 1
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown('<div class="chart-container"><h3>📊 Platform Performance Comparison</h3>', unsafe_allow_html=True)
+        platform_data = df.groupby('platform').agg({'spend': 'sum', 'revenue': 'sum'}).reset_index()
+        fig = px.bar(
+            platform_data,
+            x='platform',
+            y='revenue',
+            color='platform',
+            color_discrete_map=PLOTLY_COLORS['platforms'],
+            template=PLOTLY_TEMPLATE
+        )
+        fig.update_layout(
+            margin=dict(l=0, r=0, t=10, b=0),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            showlegend=False,
+            xaxis_title="",
+            yaxis_title="Revenue ($)"
+        )
+        st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col2:
+        st.markdown('<div class="chart-container"><h3>🎯 ROAS by Platform</h3>', unsafe_allow_html=True)
+        platform_roas = df.groupby('platform').apply(
+            lambda x: x['revenue'].sum() / x['spend'].sum() if x['spend'].sum() > 0 else 0
+        ).reset_index(name='roas')
+        fig = px.bar(
+            platform_roas,
+            x='platform',
+            y='roas',
+            color='roas',
+            color_continuous_scale=['#d62728', '#ffc107', '#2ca02c'],
+            template=PLOTLY_TEMPLATE
+        )
+        fig.add_hline(y=2.0, line_dash="dash", line_color="#d62728", annotation_text="Target: 2.0x")
+        fig.update_layout(
+            margin=dict(l=0, r=0, t=10, b=0),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            showlegend=False,
+            xaxis_title="",
+            yaxis_title="ROAS"
+        )
+        st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # Charts Row 2
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown('<div class="chart-container"><h3>📈 Daily Performance Trend</h3>', unsafe_allow_html=True)
+        daily_data = df.groupby('date').agg({'spend': 'sum', 'revenue': 'sum'}).reset_index()
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=daily_data['date'], y=daily_data['spend'], name='Spend', line=dict(color='#1f77b4')))
+        fig.add_trace(go.Scatter(x=daily_data['date'], y=daily_data['revenue'], name='Revenue', line=dict(color='#2ca02c')))
+        fig.update_layout(
+            margin=dict(l=0, r=0, t=10, b=0),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            template=PLOTLY_TEMPLATE,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        )
+        st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col2:
+        st.markdown('<div class="chart-container"><h3>🌍 Performance by Region</h3>', unsafe_allow_html=True)
+        region_data = df.groupby('region').agg({'spend': 'sum'}).reset_index()
+        fig = px.pie(
+            region_data,
+            values='spend',
+            names='region',
+            color_discrete_sequence=['#1f77b4', '#2ca02c', '#ff7f0e', '#d62728'],
+            hole=0.4,
+            template=PLOTLY_TEMPLATE
+        )
+        fig.update_layout(
+            margin=dict(l=0, r=0, t=10, b=0),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)'
+        )
+        st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # Top Campaigns Table
+    st.markdown('<div class="chart-container"><h3>📋 Top Performing Campaigns</h3>', unsafe_allow_html=True)
+    top_campaigns = df.groupby(['campaign_name', 'platform']).agg({
+        'spend': 'sum',
+        'revenue': 'sum',
+        'conversions': 'sum',
+        'clicks': 'sum',
+        'impressions': 'sum'
+    }).reset_index()
+    top_campaigns['roas'] = top_campaigns['revenue'] / top_campaigns['spend']
+    top_campaigns['cpa'] = top_campaigns['spend'] / top_campaigns['conversions'].replace(0, 1)
+    top_campaigns['ctr'] = (top_campaigns['clicks'] / top_campaigns['impressions'] * 100).round(2)
+    top_campaigns = top_campaigns.sort_values('revenue', ascending=False).head(10)
+
+    display_df = top_campaigns[['campaign_name', 'platform', 'spend', 'revenue', 'roas', 'cpa', 'conversions', 'ctr']].copy()
+    display_df.columns = ['Campaign Name', 'Platform', 'Spend', 'Revenue', 'ROAS', 'CPA', 'Conversions', 'CTR']
+    display_df['Spend'] = display_df['Spend'].apply(lambda x: f"${x:,.2f}")
+    display_df['Revenue'] = display_df['Revenue'].apply(lambda x: f"${x:,.2f}")
+    display_df['ROAS'] = display_df['ROAS'].apply(lambda x: f"{x:.2f}x")
+    display_df['CPA'] = display_df['CPA'].apply(lambda x: f"${x:.2f}")
+    display_df['CTR'] = display_df['CTR'].apply(lambda x: f"{x:.1f}%")
+
+    st.dataframe(display_df, use_container_width=True, hide_index=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+def render_platform_tab(df: pd.DataFrame):
+    st.subheader("Platform Deep-Dive Analysis")
+
+    selected_platform = st.selectbox("Select Platform", df['platform'].unique())
+    platform_df = df[df['platform'] == selected_platform]
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown('<div class="chart-container"><h3>CTR vs CPM Analysis</h3>', unsafe_allow_html=True)
+        fig = px.scatter(
+            platform_df.groupby('campaign_name').agg({
+                'cpm': 'mean', 'ctr': 'mean', 'impressions': 'sum'
+            }).reset_index(),
+            x='cpm',
+            y='ctr',
+            size='impressions',
+            color='ctr',
+            color_continuous_scale='RdYlGn',
+            template=PLOTLY_TEMPLATE
+        )
+        fig.update_layout(
+            margin=dict(l=0, r=0, t=10, b=0),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)'
+        )
+        st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col2:
+        st.markdown('<div class="chart-container"><h3>CPA Trend</h3>', unsafe_allow_html=True)
+        daily_cpa = platform_df.groupby('date').apply(
+            lambda x: x['spend'].sum() / x['conversions'].sum() if x['conversions'].sum() > 0 else 0
+        ).reset_index(name='cpa')
+        fig = px.line(daily_cpa, x='date', y='cpa', template=PLOTLY_TEMPLATE)
+        fig.update_traces(line_color='#1f77b4')
+        fig.update_layout(
+            margin=dict(l=0, r=0, t=10, b=0),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)'
+        )
+        st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+def render_budget_tab(df: pd.DataFrame):
+    st.subheader("Budget Optimizer")
+    st.info("💡 Budget optimization recommendations based on current performance")
+
+    platform_perf = df.groupby('platform').agg({
+        'spend': 'sum',
+        'revenue': 'sum',
+        'conversions': 'sum'
+    }).reset_index()
+    platform_perf['roas'] = platform_perf['revenue'] / platform_perf['spend']
+    platform_perf['recommendation'] = platform_perf['roas'].apply(
+        lambda x: "🟢 Scale Up 30%" if x > 2.5 else ("🟡 Maintain" if x > 1.5 else "🔴 Reduce 20%")
+    )
+
+    st.dataframe(platform_perf, use_container_width=True, hide_index=True)
+
+def render_alerts_tab(df: pd.DataFrame):
+    st.subheader("🚨 Recent Alerts")
+
+    # Calculate alerts
+    platform_roas = df.groupby('platform').apply(
+        lambda x: x['revenue'].sum() / x['spend'].sum() if x['spend'].sum() > 0 else 0
+    )
+    high_performers = platform_roas[platform_roas > 2.5]
+    low_performers = platform_roas[platform_roas < 1.5]
+
+    avg_cpa = df['spend'].sum() / df['conversions'].sum() if df['conversions'].sum() > 0 else 0
+
+    # Good alerts
+    if len(high_performers) > 0:
+        render_alert(
+            "good",
+            f"🟢 {len(high_performers)} High-Performance Platforms Identified",
+            f"Excellent ROAS (avg {high_performers.mean():.2f}x) across {', '.join(high_performers.index)}",
+            "Scale these platforms by 30-50%"
+        )
+
+    # Warning alerts
+    render_alert(
+        "warning",
+        "🟡 High CPA Detected in Some Campaigns",
+        f"Average CPA is ${avg_cpa:.2f}. Some campaigns exceed target.",
+        "Optimize landing pages, refine targeting"
+    )
+
+    # Critical alerts
+    if len(low_performers) > 0:
+        render_alert(
+            "critical",
+            f"🔴 {len(low_performers)} Platforms Below Target ROAS",
+            f"Platforms with ROAS below 1.5x: {', '.join(low_performers.index)}",
+            "Pause lowest performers immediately"
+        )
+
+def render_reports_tab(df: pd.DataFrame):
+    st.subheader("📊 Detailed Reports")
+
+    report_type = st.selectbox("Select Report Type", [
+        "Campaign Performance Summary",
+        "Platform Comparison",
+        "Regional Analysis",
+        "Daily Trends"
+    ])
+
+    if report_type == "Campaign Performance Summary":
+        st.dataframe(df.groupby('campaign_name').agg({
+            'spend': 'sum',
+            'revenue': 'sum',
+            'conversions': 'sum',
+            'clicks': 'sum'
+        }).round(2), use_container_width=True)
+    elif report_type == "Platform Comparison":
+        st.dataframe(df.groupby('platform').agg({
+            'spend': 'sum',
+            'revenue': 'sum',
+            'conversions': 'sum',
+            'roas': 'mean'
+        }).round(2), use_container_width=True)
+    elif report_type == "Regional Analysis":
+        st.dataframe(df.groupby('region').agg({
+            'spend': 'sum',
+            'revenue': 'sum',
+            'conversions': 'sum'
+        }).round(2), use_container_width=True)
+    else:
+        st.dataframe(df.groupby('date').agg({
+            'spend': 'sum',
+            'revenue': 'sum'
+        }).round(2), use_container_width=True)
 
 # =============================
 # AUTHENTICATION
@@ -173,12 +520,13 @@ def login_page():
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.markdown("<div class='login-container'>", unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-logo" style="margin-bottom: 20px;">al-ai.ai</div>', unsafe_allow_html=True)
         st.title("🔐 Login")
         st.markdown("Please sign in to continue")
-        
+
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
-        
+
         if st.button("Login", use_container_width=True):
             user = next((u for u in st.session_state.users if u['username'] == username and u.get('password') == password), None)
             if user:
@@ -188,7 +536,6 @@ def login_page():
                     st.session_state.logged_in = True
                     st.session_state.user_role = user['role']
                     st.session_state.username = user['username']
-                    # Update last login
                     user['last_login'] = datetime.now().strftime('%Y-%m-%d %H:%M')
                     st.success("Logged in successfully!")
                     st.rerun()
@@ -201,10 +548,7 @@ def login_page():
 # =============================
 
 def main():
-    # Initialize Admin State (users)
     admin.initialize_admin_state()
-
-    # Initialize account session state
     init_account_session_state()
 
     if 'logged_in' not in st.session_state:
@@ -214,22 +558,20 @@ def main():
         login_page()
         return
 
-    # If logged in
-    st.sidebar.title(f"👤 {st.session_state.username}")
-
-    # Logout button
+    # Logged in user info
+    st.sidebar.markdown("---")
+    st.sidebar.markdown(f"👤 **{st.session_state.username}**")
     if st.sidebar.button("Logout", key="logout_btn"):
         st.session_state.logged_in = False
         st.rerun()
 
     with st.spinner("Loading data..."):
         df = load_campaign_data()
-    selected_platform, selected_campaigns, date_range, selected_account_id = render_sidebar(df)
 
-    # Store selected account in session state for other components
+    selected_platforms, selected_regions, date_range, selected_account_id = render_sidebar(df)
     st.session_state.selected_account_id = selected_account_id
 
-    render_dashboard(df, selected_platform)
+    render_dashboard(df, selected_platforms, selected_regions, date_range)
 
 if __name__ == "__main__":
     main()
