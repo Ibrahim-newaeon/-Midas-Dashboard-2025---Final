@@ -49,6 +49,7 @@ class MetaAdsClient:
     """
 
     # Standard fields to fetch for insights
+    # NOTE: Cost/spend metrics excluded (spend, cpc, cpm, cost_per_conversion, purchase_roas)
     INSIGHT_FIELDS = [
         'account_id',
         'account_name',
@@ -63,13 +64,8 @@ class MetaAdsClient:
         'frequency',
         'clicks',
         'unique_clicks',
-        'spend',
-        'cpc',
-        'cpm',
         'ctr',
         'conversions',
-        'cost_per_conversion',
-        'purchase_roas',
         'actions',
         'action_values',
         'date_start',
@@ -130,15 +126,13 @@ class MetaAdsClient:
 
         try:
             account = AdAccount(account_id)
+            # NOTE: Cost/spend metrics excluded (spend_cap, amount_spent, balance)
             info = account.api_get(fields=[
                 'name',
                 'account_id',
                 'account_status',
                 'currency',
                 'timezone_name',
-                'spend_cap',
-                'amount_spent',
-                'balance',
                 'business_name',
             ])
             return dict(info)
@@ -266,6 +260,7 @@ class MetaAdsClient:
 
         try:
             account = AdAccount(account_id)
+            # NOTE: Cost/spend/budget metrics excluded (daily_budget, lifetime_budget, budget_remaining)
             campaigns = account.get_campaigns(
                 fields=[
                     'id',
@@ -273,9 +268,6 @@ class MetaAdsClient:
                     'status',
                     'effective_status',
                     'objective',
-                    'daily_budget',
-                    'lifetime_budget',
-                    'budget_remaining',
                     'created_time',
                     'start_time',
                     'stop_time',
@@ -347,13 +339,13 @@ class MetaAdsClient:
 
     def _mock_account_info(self, account_id: str) -> Dict[str, Any]:
         """Generate mock account info."""
+        # NOTE: Cost/spend metrics excluded (amount_spent)
         return {
             'account_id': account_id,
             'name': self.get_account_name(account_id) or f'Account {account_id[-6:]}',
             'account_status': 1,
             'currency': 'USD',
             'timezone_name': 'Asia/Riyadh',
-            'amount_spent': np.random.uniform(10000, 100000),
             'business_name': 'Demo Business',
         }
 
@@ -383,10 +375,9 @@ class MetaAdsClient:
             date = start + timedelta(days=i % days)
             impressions = np.random.randint(1000, 50000)
             clicks = int(impressions * np.random.uniform(0.01, 0.05))
-            spend = np.random.uniform(50, 500)
             conversions = int(clicks * np.random.uniform(0.02, 0.15))
-            revenue = conversions * np.random.uniform(50, 200)
 
+            # NOTE: Cost/spend metrics excluded (spend, cpc, cpm, cost_per_conversion, purchase_roas, revenue)
             data.append({
                 'account_id': account_id,
                 'account_name': self.get_account_name(account_id),
@@ -403,14 +394,8 @@ class MetaAdsClient:
                 'frequency': np.random.uniform(1.1, 3.5),
                 'clicks': clicks,
                 'unique_clicks': int(clicks * np.random.uniform(0.85, 0.98)),
-                'spend': round(spend, 2),
-                'cpc': round(spend / clicks, 2) if clicks > 0 else 0,
-                'cpm': round((spend / impressions) * 1000, 2),
                 'ctr': round((clicks / impressions) * 100, 2),
                 'conversions': conversions,
-                'cost_per_conversion': round(spend / conversions, 2) if conversions > 0 else 0,
-                'purchase_roas': round(revenue / spend, 2) if spend > 0 else 0,
-                'revenue': round(revenue, 2),
                 'account_friendly_name': self.get_account_name(account_id),
             })
 
@@ -418,6 +403,7 @@ class MetaAdsClient:
 
     def _mock_campaigns(self, account_id: str) -> pd.DataFrame:
         """Generate mock campaign data."""
+        # NOTE: Cost/spend/budget metrics excluded (daily_budget, lifetime_budget, budget_remaining)
         campaigns = []
         statuses = ['ACTIVE', 'PAUSED', 'ACTIVE', 'ACTIVE']
         objectives = ['CONVERSIONS', 'TRAFFIC', 'BRAND_AWARENESS', 'LEAD_GENERATION']
@@ -429,9 +415,6 @@ class MetaAdsClient:
                 'status': np.random.choice(statuses),
                 'effective_status': np.random.choice(statuses),
                 'objective': np.random.choice(objectives),
-                'daily_budget': np.random.choice([5000, 10000, 25000, 50000]),
-                'lifetime_budget': None,
-                'budget_remaining': np.random.uniform(1000, 10000),
                 'account_id': account_id,
                 'account_friendly_name': self.get_account_name(account_id),
             })
