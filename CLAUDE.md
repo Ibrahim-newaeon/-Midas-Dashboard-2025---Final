@@ -1,6 +1,6 @@
 # CLAUDE.md - AI Assistant Guide for Midas Furniture Dashboard
 
-**Last Updated:** 2025-11-17
+**Last Updated:** 2025-12-16
 **Project:** Midas Furniture Campaign Analytics Dashboard
 **Version:** 6.1 (Streamlit 2026 Ready)
 
@@ -35,7 +35,7 @@ Midas Furniture Dashboard is a comprehensive analytics platform for digital mark
 - **Customer Segmentation**: RFM analysis and persona intelligence
 - **Budget Pacing**: Real-time budget tracking with automated alerts
 - **A/B Testing**: Statistical significance testing for ad variants
-- **Data Export**: CSV, Excel, and PDF export capabilities
+- **Data Export**: CSV and Excel export capabilities
 - **ML Predictions**: Optional machine learning-powered conversion predictions
 - **Anomaly Detection**: Automated performance anomaly alerts
 
@@ -48,16 +48,15 @@ Midas Furniture Dashboard is a comprehensive analytics platform for digital mark
 ## 🛠 Technology Stack
 
 ### Core Framework
-- **Streamlit** (>=1.28.0) - Web application framework
-- **Python** (3.8+) - Programming language
+- **Streamlit** (>=1.40.0) - Web application framework
+- **Python** (3.10+) - Programming language
 
 ### Data Processing
 - **Pandas** (>=2.0.0) - Data manipulation and analysis
 - **NumPy** (>=1.24.0) - Numerical computing
 
 ### Visualization
-- **Plotly** (>=5.18.0) - Interactive charts and graphs
-- **Matplotlib** (>=3.7.0) - Additional plotting capabilities
+- **Plotly** (>=5.22.0) - Interactive charts and graphs
 
 ### Database
 - **SQLite** - Embedded database (via `furniture.db`)
@@ -65,16 +64,13 @@ Midas Furniture Dashboard is a comprehensive analytics platform for digital mark
 
 ### Authentication & Security
 - **bcrypt** (>=4.0.0) - Password hashing
-- **passlib** (>=1.7.4) - Password handling utilities
 
 ### Data Export
 - **openpyxl** (>=3.1.0) - Excel file generation
-- **xlsxwriter** (>=3.1.0) - Excel writing
-- **reportlab** (>=4.0.0) - PDF generation
 
 ### Machine Learning (Optional)
-- **scikit-learn** (>=1.3.0) - ML models
-- **scipy** (>=1.11.0) - Scientific computing
+- **scikit-learn** (>=1.4.0) - ML models
+- **scipy** (>=1.12.0) - Scientific computing
 - **joblib** (>=1.3.0) - Model persistence
 
 ### Testing & Development

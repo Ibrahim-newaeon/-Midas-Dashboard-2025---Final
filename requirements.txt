@@ -1,34 +1,33 @@
 # ============================================================================
 # CORE STREAMLIT DEPENDENCIES
 # ============================================================================
-streamlit>=1.28.0
+streamlit>=1.40.0
 pandas>=2.0.0
 numpy>=1.24.0
 
 # ============================================================================
 # VISUALIZATION
 # ============================================================================
-plotly>=5.18.0
-matplotlib>=3.7.0
+plotly>=5.22.0
+# NOTE: matplotlib removed - not used in codebase (only Plotly is used)
 
 # ============================================================================
 # DATA EXPORT
 # ============================================================================
 openpyxl>=3.1.0
-reportlab>=4.0.0
-xlsxwriter>=3.1.0
+# NOTE: xlsxwriter removed - only openpyxl is used for Excel export
+# NOTE: reportlab removed - PDF export not implemented (only CSV/Excel)
 
 # ============================================================================
 # DATABASE & ORM
 # ============================================================================
 sqlalchemy>=2.0.0
 
-
 # ============================================================================
 # AUTHENTICATION & SECURITY
 # ============================================================================
 bcrypt>=4.0.0
-passlib>=1.7.4
+# NOTE: passlib removed - only bcrypt is used directly for password hashing
 
 # ============================================================================
 # DATA GENERATION & TESTING
@@ -38,21 +37,20 @@ faker>=20.0.0
 # ============================================================================
 # MACHINE LEARNING & ANALYTICS
 # ============================================================================
-scikit-learn>=1.3.0
-scipy>=1.11.0
+scikit-learn>=1.4.0
+scipy>=1.12.0
 joblib>=1.3.0
-
-# ============================================================================
-# DATE & TIME UTILITIES
-# ============================================================================
-python-dateutil>=2.8.0
 
 # ============================================================================
 # API INTEGRATIONS (Optional - for live data)
 # ============================================================================
-requests>=2.31.0
-facebook-business>=17.0.0  # Meta Ads API - Multi-Account Support
+facebook-business>=22.0.0  # Meta Ads API - Multi-Account Support
+# NOTE: requests removed - facebook-business SDK handles HTTP internally
 # google-ads>=22.0.0  # Uncomment when ready for Google Ads API
+
+# ============================================================================
+# NOTE: python-dateutil removed - standard datetime module is sufficient
+# ============================================================================
 
 # ============================================================================
 # DEVELOPMENT TOOLS (Optional)
